@@ -27,7 +27,7 @@
   "fcm_use_mixer": true,
   "frequency_token_vocab_size": 5,
   "gated_attn": true,
-  "head_dropout": 0.7,
+  "head_dropout": 0.4,
   "huber_delta": 1,
   "init_embed": "pytorch",
   "init_linear": "pytorch",
