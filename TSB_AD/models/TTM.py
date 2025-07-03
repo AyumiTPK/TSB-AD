@@ -145,7 +145,7 @@ class TTM(BaseDetector):
         scores = (targets - preds) ** 2
 
         #scores = (targets.squeeze() - preds.squeeze()) ** 2
-        #scores_merge = np.mean(scores, axis=1)
+        #scores_merge = np.mean(scores, axis=0)
 
         print("[Zero] Calculating mean squared error")
         per_timestamp_score = np.mean(scores, axis=(1, 2))
@@ -155,29 +155,17 @@ class TTM(BaseDetector):
 
         # timestamp scores
         padded_timestamp_score = np.zeros(len(data))
-        if pad_start + len(per_timestamp_score) > len(data):
-            raise ValueError(
-                f"[Zero] Cannot pad timestamp scores: score={len(per_timestamp_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
         padded_timestamp_score[:pad_start] = per_timestamp_score[0]
         padded_timestamp_score[pad_start:pad_start + len(per_timestamp_score)] = per_timestamp_score
 
         # feature scores
         num_features = data.shape[1]
         padded_feature_score = np.zeros((len(data), num_features))
-        if pad_start + len(per_feature_score) > len(data):
-            raise ValueError(
-                f"[Zero] Cannot pad feature scores: score={len(per_feature_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
         padded_feature_score[:pad_start, :] = per_feature_score[0]
         padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
 
         # time-feature scores
         padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
-        if pad_start + len(scores) > len(data):
-            raise ValueError(
-                f"[Zero] Cannot pad time-feature scores: score={len(scores)}, pad_start={pad_start}, data_len={len(data)}"
-            )
         padded_time_feature_score[:pad_start, :, :] = scores[0]
         padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
         self.time_feature_scores_ = padded_time_feature_score
@@ -370,7 +358,7 @@ class TTM(BaseDetector):
 
         print("[FT] Padding complete")
         self.decision_scores_ = padded_timestamp_score
-        self.feature_scores_ = padded_feature_score 
+        self.feature_scores_ = padded_feature_score
         self.time_feature_scores_ = padded_time_feature_score
 
     def decision_function(self, X):
