@@ -137,12 +137,19 @@ class TTM(BaseDetector):
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
 
-        scores = (targets.squeeze() - preds.squeeze()) ** 2
+        if preds.ndim == 2:
+            preds = preds[:, :, np.newaxis]
+        if targets.ndim == 2:
+            targets = targets[:, :, np.newaxis]
+
+        scores = (targets - preds) ** 2
+
+        #scores = (targets.squeeze() - preds.squeeze()) ** 2
         #scores_merge = np.mean(scores, axis=1)
 
         print("[Zero] Calculating mean squared error")
-        per_timestamp_score = np.mean(scores, axis=(1, 2))  # shape: (N,)
-        per_feature_score = np.mean(scores, axis=1)  # shape: (N, num_features)
+        per_timestamp_score = np.mean(scores, axis=(1, 2))
+        per_feature_score = np.mean(scores, axis=1)
 
         pad_start = self.context_length + self.prediction_length - 1
 
@@ -176,8 +183,8 @@ class TTM(BaseDetector):
         self.time_feature_scores_ = padded_time_feature_score
 
         print("[Zero] Padding complete")
-        self.decision_scores_ = padded_timestamp_score  # (len(data),)
-        self.feature_scores_ = padded_feature_score  # (len(data), num_features)
+        self.decision_scores_ = padded_timestamp_score
+        self.feature_scores_ = padded_feature_score
         self.time_feature_scores_ = padded_time_feature_score
 
 
@@ -317,12 +324,18 @@ class TTM(BaseDetector):
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
 
-        scores = (targets.squeeze() - preds.squeeze()) ** 2
+        if preds.ndim == 2:
+            preds = preds[:, :, np.newaxis]
+        if targets.ndim == 2:
+            targets = targets[:, :, np.newaxis]
+
+        scores = (targets - preds) ** 2
+        #scores = (targets.squeeze() - preds.squeeze()) ** 2
         #scores_merge = np.mean(scores, axis=1)
 
         print("[FT] Calculating mean squared error")
-        per_timestamp_score = np.mean(scores, axis=(1, 2))  # shape: (N,)
-        per_feature_score = np.mean(scores, axis=1)  # shape: (N, num_features)
+        per_timestamp_score = np.mean(scores, axis=(1, 2))
+        per_feature_score = np.mean(scores, axis=1)
 
         pad_start = self.context_length + self.prediction_length - 1
 
@@ -356,8 +369,8 @@ class TTM(BaseDetector):
         self.time_feature_scores_ = padded_time_feature_score
 
         print("[FT] Padding complete")
-        self.decision_scores_ = padded_timestamp_score  # (len(data),)
-        self.feature_scores_ = padded_feature_score  # (len(data), num_features)
+        self.decision_scores_ = padded_timestamp_score
+        self.feature_scores_ = padded_feature_score 
         self.time_feature_scores_ = padded_time_feature_score
 
     def decision_function(self, X):
