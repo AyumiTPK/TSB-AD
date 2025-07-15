@@ -412,9 +412,7 @@ def run_TTM_FT(
     context_length=512,
     prediction_length=96,
     model_path="ibm-granite/granite-timeseries-ttm-r2",
-    fewshot_percent=5,
-    return_feature=False,
-    return_time_feature=False
+    fewshot_percent=5
 ):
     from .models.TTM import TTM
 
@@ -425,23 +423,14 @@ def run_TTM_FT(
         fewshot_percent=fewshot_percent
     )
     clf.fit(data_train)
-    results = [clf.decision_function(data_test)]
-
-    if return_feature:
-        results.append(clf.feature_importance())
-
-    if return_time_feature:
-        results.append(clf.time_feature())
-
-    return tuple(results) if len(results) > 1 else results[0]
+    score = clf.decision_function(data_test)
+    return score.ravel()
 
 def run_TTM_ZS(
     data,
     context_length=512,
     prediction_length=96,
     model_path="ibm-granite/granite-timeseries-ttm-r2",
-    return_feature=False,
-    return_time_feature=False
 ):
     from .models.TTM import TTM
 
@@ -451,14 +440,7 @@ def run_TTM_ZS(
         model_path=model_path
     )
     clf.zero_shot(data)
-    results = [clf.decision_function(data)]
-
-    if return_feature:
-        results.append(clf.feature_importance())
-
-    if return_time_feature:
-        results.append(clf.time_feature())
-
-    return tuple(results) if len(results) > 1 else results[0]
+    score = clf.decision_function(data)
+    return score.ravel()
 
 
