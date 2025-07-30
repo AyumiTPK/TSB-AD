@@ -14,3 +14,5 @@ stumpy>=1.12.0
 networkx>=3.1
 transformers>=4.38.0
 torch==2.3.0
+torchaudio==2.3.0
+torchvision==0.18.0

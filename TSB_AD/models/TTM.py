@@ -21,22 +21,21 @@ from tsfm_public import (
 )
 from tsfm_public.toolkit.get_model import get_model
 from tsfm_public.toolkit.visualization import plot_predictions
-from tsfm_public.toolkit.lr_finder import optimal_lr_finder  # import only if needed
+from tsfm_public.toolkit.lr_finder import optimal_lr_finder
 import math
 
 class TTM(BaseDetector):
     def __init__(self,
                  model_path="ibm-granite/granite-timeseries-ttm-r2",
-                 context_length=24, #512,
-                 prediction_length=6,#96,
-                 batch_size=1,#4
-                 num_epochs=1,#50
-                 learning_rate=0.001,
+                 context_length=512, #512,
+                 prediction_length=96,#96,
+                 batch_size=32,#64
+                 num_epochs=50,
+                 learning_rate=None,
                  fewshot_percent=5,
                  freeze_backbone=False,
                  loss="mse",
                  quantile=0.5):
-        #super().__init__(contamination=0.1)
         self.model_name = 'TTM'
         self.model_path = model_path
         self.context_length = context_length
@@ -66,6 +65,7 @@ class TTM(BaseDetector):
                 "id_columns": [],
                 "target_columns": feature_names,
                 "control_columns": [],
+                #"conditional_columns": [],
             }
 
         if not self.split_config:
@@ -81,7 +81,7 @@ class TTM(BaseDetector):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             scaling=True,
-            encode_categorical=False,
+            #encode_categorical=False,
             scaler_type="standard",
             column_specifiers=self.column_specifiers
         )
@@ -97,6 +97,7 @@ class TTM(BaseDetector):
             prefer_longer_context=True,
             #loss=self.loss,
             #quantile=self.quantile,
+            #decoder_mode="mix_channel",
         )
 
         print("[Zero] Creating datasets")
@@ -122,7 +123,6 @@ class TTM(BaseDetector):
         )
 
         print("+" * 20, f"Test MSE zero-shot", "+" * 20)
-        zeroshot_trainer.model.loss = "mse"
         zeroshot_output = zeroshot_trainer.evaluate(dset_test)
         print(zeroshot_output)
         print("+" * 60)
@@ -137,58 +137,34 @@ class TTM(BaseDetector):
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
 
-        if preds.ndim == 2:
-            preds = preds[:, :, np.newaxis]
-        if targets.ndim == 2:
-            targets = targets[:, :, np.newaxis]
-
-        scores = (targets - preds) ** 2
-
-        #scores = (targets.squeeze() - preds.squeeze()) ** 2
-        #scores_merge = np.mean(scores, axis=1)
+        scores = (targets.squeeze() - preds.squeeze()) ** 2
 
         print("[Zero] Calculating mean squared error")
-        per_timestamp_score = np.mean(scores, axis=(1, 2))
-        per_feature_score = np.mean(scores, axis=1)
+        per_time_feature_score = np.mean(scores, axis=1)
+
+        if per_time_feature_score.ndim == 1:
+            per_time_feature_score = per_time_feature_score[np.newaxis, :]
 
         pad_start = self.context_length + self.prediction_length - 1
-
-        # timestamp scores
-        padded_timestamp_score = np.zeros(len(data))
-        if pad_start + len(per_timestamp_score) > len(data):
-            raise ValueError(
-                f"[Zero] Cannot pad timestamp scores: score={len(per_timestamp_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_timestamp_score[:pad_start] = per_timestamp_score[0]
-        padded_timestamp_score[pad_start:pad_start + len(per_timestamp_score)] = per_timestamp_score
-
-        # feature scores
-        num_features = data.shape[1]
-        padded_feature_score = np.zeros((len(data), num_features))
-        if pad_start + len(per_feature_score) > len(data):
-            raise ValueError(
-                f"[Zero] Cannot pad feature scores: score={len(per_feature_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_feature_score[:pad_start, :] = per_feature_score[0]
-        padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
-
-        # time-feature scores
-        padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
-        if pad_start + len(scores) > len(data):
-            raise ValueError(
-                f"[Zero] Cannot pad time-feature scores: score={len(scores)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_time_feature_score[:pad_start, :, :] = scores[0]
-        padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
-        self.time_feature_scores_ = padded_time_feature_score
+        padded_score = np.zeros((len(data), num_features))
+        padded_score[:pad_start, :] = per_time_feature_score[0]
+        padded_score[pad_start:pad_start + len(per_time_feature_score), :] = per_time_feature_score
 
         print("[Zero] Padding complete")
-        self.decision_scores_ = padded_timestamp_score
-        self.feature_scores_ = padded_feature_score
-        self.time_feature_scores_ = padded_time_feature_score
-
+        final_score = padded_score.mean(axis=1)
+        self.decision_scores_ = final_score
 
     def fit(self, data):
+        train_loss_history = []
+        val_loss_history = []
+        class LossTrackerCallback(TrackingCallback):
+            def on_log(self, args, state, control, logs=None, **kwargs):
+                if logs and 'loss' in logs:
+                    train_loss_history.append(logs['loss'])
+
+            def on_evaluate(self, args, state, control, metrics, **kwargs):
+                if 'eval_loss' in metrics:
+                    val_loss_history.append(metrics['eval_loss'])
 
         print("[FT] Reconstructing DataFrame")
         num_features = data.shape[1]
@@ -201,6 +177,7 @@ class TTM(BaseDetector):
                 "id_columns": [],
                 "target_columns": feature_names,
                 "control_columns": [],
+                #"conditional_columns": [],
             }
 
         if not self.split_config:
@@ -216,7 +193,7 @@ class TTM(BaseDetector):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             scaling=True,
-            encode_categorical=False,
+            #encode_categorical=False,
             scaler_type="standard",
             column_specifiers=self.column_specifiers
         )
@@ -232,6 +209,7 @@ class TTM(BaseDetector):
             prefer_longer_context=True,
             loss=self.loss,
             quantile=self.quantile,
+            #decoder_mode="mix_channel",
         )
 
         print("[FT] Creating datasets")
@@ -269,19 +247,19 @@ class TTM(BaseDetector):
         training_args = TrainingArguments(
             output_dir=temp_dir,
             learning_rate=self.learning_rate,
+            num_train_epochs=self.num_epochs,
+            do_eval=True,
+            eval_strategy="epoch",
             per_device_train_batch_size=self.batch_size,
             per_device_eval_batch_size=self.batch_size,
-            num_train_epochs=self.num_epochs,
-            evaluation_strategy="epoch",
+            dataloader_num_workers=8,
+            report_to="none",
             save_strategy="epoch",
             logging_strategy="epoch",
-            report_to="none",
-            seed=7,
-            do_eval=True,
             load_best_model_at_end=True,
             metric_for_best_model="eval_loss",
             greater_is_better=False,
-            dataloader_num_workers=8,
+            seed=7,
         )
 
         early_stopping_callback = EarlyStoppingCallback(
@@ -298,18 +276,38 @@ class TTM(BaseDetector):
             steps_per_epoch=math.ceil(len(dset_train) / self.batch_size),
         )
 
+        #trainer = Trainer(
+        #    model=self.model,
+        #    args=training_args,
+        #    train_dataset=dset_train,
+        #    eval_dataset=dset_val,
+        #    callbacks=[early_stopping_callback, tracking_callback],
+        #    optimizers=(optimizer, scheduler),
+        #)
+
+        loss_tracker = LossTrackerCallback()
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=dset_train,
             eval_dataset=dset_val,
-            callbacks=[early_stopping_callback, tracking_callback],
+            callbacks=[early_stopping_callback, tracking_callback, loss_tracker],
             optimizers=(optimizer, scheduler),
         )
+
         trainer.train()
 
+        import matplotlib.pyplot as plt
+        plt.plot(train_loss_history, label="Training Loss")
+        plt.plot(val_loss_history, label="Validation Loss")
+        plt.xlabel("Epoch")
+        plt.ylabel("Loss")
+        plt.title("Training and Validation Loss vs Epoch")
+        plt.legend()
+        plt.show()
+
         print("+" * 20, f"Test loss after fine-tuning", "+" * 20)
-        trainer.model.loss = "mse"  # for consistent evaluation metric
+        trainer.model.loss = "mse"
         fewshot_output = trainer.evaluate(dset_test)
         print(fewshot_output)
         print("+" * 60)
@@ -324,69 +322,28 @@ class TTM(BaseDetector):
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
 
-        if preds.ndim == 2:
-            preds = preds[:, :, np.newaxis]
-        if targets.ndim == 2:
-            targets = targets[:, :, np.newaxis]
-
-        scores = (targets - preds) ** 2
-        #scores = (targets.squeeze() - preds.squeeze()) ** 2
-        #scores_merge = np.mean(scores, axis=1)
+        scores = (targets.squeeze() - preds.squeeze()) ** 2
 
         print("[FT] Calculating mean squared error")
-        per_timestamp_score = np.mean(scores, axis=(1, 2))
-        per_feature_score = np.mean(scores, axis=1)
+        per_time_feature_score = np.mean(scores, axis=1)
+
+        if per_time_feature_score.ndim == 1:
+            per_time_feature_score = per_time_feature_score[np.newaxis, :]
 
         pad_start = self.context_length + self.prediction_length - 1
-
-        # timestamp scores
-        padded_timestamp_score = np.zeros(len(data))
-        if pad_start + len(per_timestamp_score) > len(data):
-            raise ValueError(
-                f"[FT] Cannot pad timestamp scores: score={len(per_timestamp_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_timestamp_score[:pad_start] = per_timestamp_score[0]
-        padded_timestamp_score[pad_start:pad_start + len(per_timestamp_score)] = per_timestamp_score
-
-        # feature scores
-        num_features = data.shape[1]
-        padded_feature_score = np.zeros((len(data), num_features))
-        if pad_start + len(per_feature_score) > len(data):
-            raise ValueError(
-                f"[FT] Cannot pad feature scores: score={len(per_feature_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_feature_score[:pad_start, :] = per_feature_score[0]
-        padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
-
-        # time-feature scores
-        padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
-        if pad_start + len(scores) > len(data):
-            raise ValueError(
-                f"[FT] Cannot pad time-feature scores: score={len(scores)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_time_feature_score[:pad_start, :, :] = scores[0]
-        padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
-        self.time_feature_scores_ = padded_time_feature_score
+        padded_score = np.zeros((len(data), num_features))
+        padded_score[:pad_start, :] = per_time_feature_score[0]
+        padded_score[pad_start:pad_start + len(per_time_feature_score), :] = per_time_feature_score
 
         print("[FT] Padding complete")
-        self.decision_scores_ = padded_timestamp_score
-        self.feature_scores_ = padded_feature_score 
-        self.time_feature_scores_ = padded_time_feature_score
+        final_score = padded_score.mean(axis=1)
+        self.decision_scores_ = final_score
 
     def decision_function(self, X):
         if not hasattr(self, 'decision_scores_') or self.decision_scores_ is None:
-            raise RuntimeError("timestamp scores not available. ")
+            raise RuntimeError("Scores not available. ")
         return self.decision_scores_
 
-    def feature_importance(self):
-        if not hasattr(self, 'feature_scores_') or self.feature_scores_ is None:
-            raise RuntimeError("Feature scores not available.")
-        return self.feature_scores_
-
-    def time_feature(self):
-        if not hasattr(self, 'time_feature_scores_') or self.time_feature_scores_ is None:
-            raise RuntimeError("Time_feature scores not available.")
-        return self.time_feature_scores_
 
 
 
