@@ -88,7 +88,7 @@ Multi_algo_HP_dict = {
     'TTM': {
         'context_length': [256, 512],
         'prediction_length': [48, 96],
-        'batch_size': [2, 4, 8]
+        'batch_size': [32, 64]
 },
 }
 
@@ -118,7 +118,7 @@ Optimal_Multi_algo_HP_dict = {
     'TimesNet': {'win_size': 96, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
-    'TTM': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
+    'TTM': {'context_length': 512, 'prediction_length': 96, 'batch_size': 64},
 
 }
 
@@ -243,7 +243,7 @@ Uni_algo_HP_dict = {
     'TTM': {
         'context_length': [256, 512],
         'prediction_length': [48, 96],
-        'batch_size': [2, 4, 8]
+        'batch_size': [32, 64]
     },
 }
 
@@ -284,5 +284,5 @@ Optimal_Uni_algo_HP_dict = {
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
     'M2N2': {},
-    'TTM': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
+    'TTM': {'context_length': 512, 'prediction_length': 96, 'batch_size': 64},
 }

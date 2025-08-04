@@ -29,8 +29,8 @@ class TTM(BaseDetector):
                  model_path="ibm-granite/granite-timeseries-ttm-r2",
                  context_length=512, #512,
                  prediction_length=96,#96,
-                 batch_size=32,#64
-                 num_epochs=50,
+                 batch_size=64,#64
+                 num_epochs=2,
                  learning_rate=None,
                  fewshot_percent=5,
                  freeze_backbone=False,
@@ -128,11 +128,16 @@ class TTM(BaseDetector):
         print("+" * 60)
 
         print("[Zero] Predicting")
-        predictions = zeroshot_trainer.predict(dset_test)
-        preds = predictions.predictions[0]
+        predictions_dict = zeroshot_trainer.predict(dset_test)
+        preds = predictions_dict.predictions[0]
 
         print("[Zero] Extracting targets")
         targets = torch.stack([sample["future_values"] for sample in dset_test])
+
+        print(preds.shape)
+        print(targets.shape)
+        #print(preds[0])
+        #print(targets[0])
 
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
@@ -140,15 +145,16 @@ class TTM(BaseDetector):
         scores = (targets.squeeze() - preds.squeeze()) ** 2
 
         print("[Zero] Calculating mean squared error")
-        per_time_feature_score = np.mean(scores, axis=1)
+        per_time_score = np.mean(scores, axis=2)  # per_time_score shape: (num_windows, prediction_length)
 
-        if per_time_feature_score.ndim == 1:
-            per_time_feature_score = per_time_feature_score[np.newaxis, :]
+        if per_time_score.ndim == 1:
+            per_time_score = per_time_score[np.newaxis, :]
 
         pad_start = self.context_length + self.prediction_length - 1
-        padded_score = np.zeros((len(data), num_features))
-        padded_score[:pad_start, :] = per_time_feature_score[0]
-        padded_score[pad_start:pad_start + len(per_time_feature_score), :] = per_time_feature_score
+        padded_score = np.zeros((len(data), self.prediction_length))
+        #padded_score = np.zeros((len(data), num_features))
+        padded_score[:pad_start, :] = per_time_score[0]
+        padded_score[pad_start:pad_start + len(per_time_score), :] = per_time_score
 
         print("[Zero] Padding complete")
         final_score = padded_score.mean(axis=1)
@@ -157,6 +163,7 @@ class TTM(BaseDetector):
     def fit(self, data):
         train_loss_history = []
         val_loss_history = []
+        # checking for early stopping
         class LossTrackerCallback(TrackingCallback):
             def on_log(self, args, state, control, logs=None, **kwargs):
                 if logs and 'loss' in logs:
@@ -221,7 +228,6 @@ class TTM(BaseDetector):
             fewshot_location="first",
             use_frequency_token=self.model.config.resolution_prefix_tuning
         )
-        #self.test_size_ = len(dset_test)
 
         if self.freeze_backbone:
             print("[FT] Freezing backbone parameters")
@@ -263,8 +269,8 @@ class TTM(BaseDetector):
         )
 
         early_stopping_callback = EarlyStoppingCallback(
-            early_stopping_patience=10,
-            early_stopping_threshold=1e-5,
+            early_stopping_patience=7,
+            early_stopping_threshold=0.0,
         )
         tracking_callback = TrackingCallback()
 
@@ -276,27 +282,19 @@ class TTM(BaseDetector):
             steps_per_epoch=math.ceil(len(dset_train) / self.batch_size),
         )
 
-        #trainer = Trainer(
-        #    model=self.model,
-        #    args=training_args,
-        #    train_dataset=dset_train,
-        #    eval_dataset=dset_val,
-        #    callbacks=[early_stopping_callback, tracking_callback],
-        #    optimizers=(optimizer, scheduler),
-        #)
-
-        loss_tracker = LossTrackerCallback()
+        loss_tracker = LossTrackerCallback() # checking for early stopping
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=dset_train,
             eval_dataset=dset_val,
-            callbacks=[early_stopping_callback, tracking_callback, loss_tracker],
+            callbacks=[early_stopping_callback, tracking_callback, loss_tracker], # checking for early stopping
             optimizers=(optimizer, scheduler),
         )
 
         trainer.train()
 
+        # checking for early stopping
         import matplotlib.pyplot as plt
         plt.plot(train_loss_history, label="Training Loss")
         plt.plot(val_loss_history, label="Validation Loss")
@@ -313,11 +311,16 @@ class TTM(BaseDetector):
         print("+" * 60)
 
         print("[FT] Predicting")
-        predictions = trainer.predict(dset_test)
-        preds = predictions.predictions[0]
+        predictions_dict = trainer.predict(dset_test)
+        preds = predictions_dict.predictions[0]
 
         print("[FT] Extracting targets")
         targets = torch.stack([sample["future_values"] for sample in dset_test])
+
+        print(preds.shape)
+        print(targets.shape)
+        #print(preds[0])
+        #print(targets[0])
 
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
@@ -325,15 +328,15 @@ class TTM(BaseDetector):
         scores = (targets.squeeze() - preds.squeeze()) ** 2
 
         print("[FT] Calculating mean squared error")
-        per_time_feature_score = np.mean(scores, axis=1)
+        per_time_score = np.mean(scores, axis=2)
 
-        if per_time_feature_score.ndim == 1:
-            per_time_feature_score = per_time_feature_score[np.newaxis, :]
+        if per_time_score.ndim == 1:
+            per_time_score = per_time_score[np.newaxis, :]
 
         pad_start = self.context_length + self.prediction_length - 1
-        padded_score = np.zeros((len(data), num_features))
-        padded_score[:pad_start, :] = per_time_feature_score[0]
-        padded_score[pad_start:pad_start + len(per_time_feature_score), :] = per_time_feature_score
+        padded_score = np.zeros((len(data), self.prediction_length))
+        padded_score[:pad_start, :] = per_time_score[0]
+        padded_score[pad_start:pad_start + len(per_time_score), :] = per_time_score
 
         print("[FT] Padding complete")
         final_score = padded_score.mean(axis=1)
