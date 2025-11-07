@@ -189,6 +189,12 @@ class PCA(BaseDetector):
                  tol=0.0, iterated_power='auto', random_state=0,
                  weighted=True, standardization=True, zero_pruning=True):
 
+        print("We are in __init__() from PCA.py")
+        print("slidingWindow:", slidingWindow)
+        print("sub:", sub)
+        print("n_components:", n_components)
+        print("n_selected_components:", n_selected_components)
+        print("contamination:", contamination)
         super(PCA, self).__init__(contamination=contamination)
         self.slidingWindow = slidingWindow
         self.sub = sub
@@ -260,12 +266,14 @@ class PCA(BaseDetector):
         check_parameter(self.n_selected_components_, 1, self.n_components_,
                         include_left=True, include_right=True,
                         param_name='n_selected_components_')
-
+        print("n_selected_components_:", self.n_selected_components_)
+       
         # use eigenvalues as the weights of eigenvectors
         self.w_components_ = np.ones([self.n_components_, ])
         if self.weighted:
             self.w_components_ = self.detector_.explained_variance_ratio_
-
+        print("w_components_:", self.w_components_)
+        
         # outlier scores is the sum of the weighted distances between each
         # sample to the eigenvectors. The eigenvectors with smaller
         # eigenvalues have more influence
@@ -276,16 +284,19 @@ class PCA(BaseDetector):
                                     -1 * self.n_selected_components_:, :]
         self.selected_w_components_ = self.w_components_[
                                       -1 * self.n_selected_components_:]
+        print("selected_components_:", self.selected_components_)
+        print("selected_w_components_:", self.selected_w_components_)
 
         self.decision_scores_ = np.sum(
             cdist(X, self.selected_components_) / self.selected_w_components_,
             axis=1).ravel()
+        print("decision_scores_ before padding:", self.decision_scores_)
 
         # padded decision_scores_
         if self.decision_scores_.shape[0] < n_samples:
             self.decision_scores_ = np.array([self.decision_scores_[0]]*math.ceil((self.slidingWindow-1)/2) + 
                         list(self.decision_scores_) + [self.decision_scores_[-1]]*((self.slidingWindow-1)//2))
-
+        print("decision_scores_ after padding:", self.decision_scores_)
         self._process_decision_scores()
         return self
 

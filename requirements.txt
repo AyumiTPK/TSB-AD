@@ -16,3 +16,5 @@ transformers>=4.38.0
 torch==2.3.0
 torchaudio==2.3.0
 torchvision==0.18.0
+#timesfm[torch] #Only for timesfm model
+#momentfm # Only for Moment model but support only python>=3.10.. 

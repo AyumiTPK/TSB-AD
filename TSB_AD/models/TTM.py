@@ -24,18 +24,20 @@ from tsfm_public.toolkit.visualization import plot_predictions
 from tsfm_public.toolkit.lr_finder import optimal_lr_finder
 import math
 
+
 class TTM(BaseDetector):
     def __init__(self,
                  model_path="ibm-granite/granite-timeseries-ttm-r2",
-                 context_length=512, #512,
-                 prediction_length=96,#96,
-                 batch_size=64,#64
+                 context_length=512,  # 512,
+                 prediction_length=96,  # 96,
+                 batch_size=64,  # 64
                  num_epochs=2,
                  learning_rate=None,
                  fewshot_percent=5,
                  freeze_backbone=False,
                  loss="mse",
                  quantile=0.5):
+        print("We are in __init__() from TTM.py")
         self.model_name = 'TTM'
         self.model_path = model_path
         self.context_length = context_length
@@ -65,7 +67,7 @@ class TTM(BaseDetector):
                 "id_columns": [],
                 "target_columns": feature_names,
                 "control_columns": [],
-                #"conditional_columns": [],
+                # "conditional_columns": [],
             }
 
         if not self.split_config:
@@ -81,7 +83,7 @@ class TTM(BaseDetector):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             scaling=True,
-            #encode_categorical=False,
+            # encode_categorical=False,
             scaler_type="standard",
             column_specifiers=self.column_specifiers
         )
@@ -95,9 +97,9 @@ class TTM(BaseDetector):
             freq=None,
             prefer_l1_loss=False,
             prefer_longer_context=True,
-            #loss=self.loss,
-            #quantile=self.quantile,
-            #decoder_mode="mix_channel",
+            # loss=self.loss,
+            # quantile=self.quantile,
+            # decoder_mode="mix_channel",
         )
 
         print("[Zero] Creating datasets")
@@ -136,8 +138,8 @@ class TTM(BaseDetector):
 
         print(preds.shape)
         print(targets.shape)
-        #print(preds[0])
-        #print(targets[0])
+        # print(preds[0])
+        # print(targets[0])
 
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
@@ -152,7 +154,7 @@ class TTM(BaseDetector):
 
         pad_start = self.context_length + self.prediction_length - 1
         padded_score = np.zeros((len(data), self.prediction_length))
-        #padded_score = np.zeros((len(data), num_features))
+        # padded_score = np.zeros((len(data), num_features))
         padded_score[:pad_start, :] = per_time_score[0]
         padded_score[pad_start:pad_start + len(per_time_score), :] = per_time_score
 
@@ -161,9 +163,11 @@ class TTM(BaseDetector):
         self.decision_scores_ = final_score
 
     def fit(self, data):
+        print("We are in fit() from TTM.py")
         train_loss_history = []
         val_loss_history = []
         # checking for early stopping
+
         class LossTrackerCallback(TrackingCallback):
             def on_log(self, args, state, control, logs=None, **kwargs):
                 if logs and 'loss' in logs:
@@ -184,7 +188,7 @@ class TTM(BaseDetector):
                 "id_columns": [],
                 "target_columns": feature_names,
                 "control_columns": [],
-                #"conditional_columns": [],
+                # "conditional_columns": [],
             }
 
         if not self.split_config:
@@ -200,7 +204,7 @@ class TTM(BaseDetector):
             context_length=self.context_length,
             prediction_length=self.prediction_length,
             scaling=True,
-            #encode_categorical=False,
+            # encode_categorical=False,
             scaler_type="standard",
             column_specifiers=self.column_specifiers
         )
@@ -216,7 +220,7 @@ class TTM(BaseDetector):
             prefer_longer_context=True,
             loss=self.loss,
             quantile=self.quantile,
-            #decoder_mode="mix_channel",
+            # decoder_mode="mix_channel",
         )
 
         print("[FT] Creating datasets")
@@ -240,9 +244,9 @@ class TTM(BaseDetector):
 
         if self.learning_rate is None:
             self.learning_rate, self.model = optimal_lr_finder(
-            self.model,
-            dset_train,
-            batch_size=self.batch_size,
+                self.model,
+                dset_train,
+                batch_size=self.batch_size,
             )
             print("[FT] OPTIMAL SUGGESTED LEARNING RATE =", self.learning_rate)
         else:
@@ -282,13 +286,13 @@ class TTM(BaseDetector):
             steps_per_epoch=math.ceil(len(dset_train) / self.batch_size),
         )
 
-        loss_tracker = LossTrackerCallback() # checking for early stopping
+        loss_tracker = LossTrackerCallback()  # checking for early stopping
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=dset_train,
             eval_dataset=dset_val,
-            callbacks=[early_stopping_callback, tracking_callback, loss_tracker], # checking for early stopping
+            callbacks=[early_stopping_callback, tracking_callback, loss_tracker],  # checking for early stopping
             optimizers=(optimizer, scheduler),
         )
 
@@ -319,8 +323,8 @@ class TTM(BaseDetector):
 
         print(preds.shape)
         print(targets.shape)
-        #print(preds[0])
-        #print(targets[0])
+        # print(preds[0])
+        # print(targets[0])
 
         preds = preds.numpy() if isinstance(preds, torch.Tensor) else preds
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
@@ -346,10 +350,3 @@ class TTM(BaseDetector):
         if not hasattr(self, 'decision_scores_') or self.decision_scores_ is None:
             raise RuntimeError("Scores not available. ")
         return self.decision_scores_
-
-
-
-
-
-
-

@@ -198,10 +198,11 @@ class BaseDetector(metaclass=abc.ABCMeta):
             in [0,1]. Note it depends on the number of classes, which is by
             default 2 classes ([proba of normal, proba of outliers]).
         """
-
+        print("We are in predict_proba() of the TSB_AD baseDetector.")
         check_is_fitted(self, ['decision_scores_', 'threshold_', 'labels_'])
         train_scores = self.decision_scores_
-
+        print("Train scores shape:", train_scores.shape)
+        print(train_scores)
         test_scores = self.decision_function(X)
 
         probs = np.zeros([X.shape[0], int(self._classes)])
@@ -428,6 +429,8 @@ class BaseDetector(metaclass=abc.ABCMeta):
         -------
         self
         """
+        print("Decision score max:", np.max(self.decision_scores_))
+        print("Decision score min:", np.min(self.decision_scores_))
 
         if isinstance(self.contamination, (float, int)):
             self.threshold_ = percentile(self.decision_scores_,
@@ -441,7 +444,8 @@ class BaseDetector(metaclass=abc.ABCMeta):
             self.threshold_ = self.contamination.thresh_
             if not self.threshold_:
                 self.threshold_ = np.sum(self.labels_) / len(self.labels_)
-
+        print("Contamination:", self.contamination)
+        print("Computed threshold_:", self.threshold_)
         # calculate for predict_proba()
 
         self._mu = np.mean(self.decision_scores_)
