@@ -18,8 +18,10 @@ class Chronos(BaseDetector):
                  model_size = 'base',  # [tiny, small, base]
                  prediction_length=1, 
                  input_c=1, 
-                 batch_size=128):
-
+                 batch_size=128,
+                 contamination=0.1
+                 ):
+        super(Chronos, self).__init__(contamination=contamination)
         self.model_name = 'Chronos'
         self.model_size = model_size
         self.win_size = win_size
@@ -34,8 +36,8 @@ class Chronos(BaseDetector):
             
             data_channel = data[:, channel].reshape(-1, 1)
             data_win, data_target = self.create_dataset(data_channel, slidingWindow=self.win_size, predict_time_steps=self.prediction_length)
-            # print('data_win: ', data_win.shape)         # (2330, 100)
-            # print('data_target: ', data_target.shape)   # (2330, 1)
+            print('data_win: ', data_win.shape)         # (2330, 100)
+            print('data_target: ', data_target.shape)   # (2330, 1)
 
             train_data = []
             count = 0
@@ -44,7 +46,8 @@ class Chronos(BaseDetector):
                     train_data.append([id, count, data_win[id, tt]])
                     count += 1
             train_data = pd.DataFrame(train_data, columns=['item_id', 'timestamp', 'target'])
-
+            print('train_data: ', train_data.head(5))   
+            print('train_data.shape: ', train_data.shape) # (233000, 3)
             with tempfile.TemporaryDirectory() as temp_dir:
 
                 predictor = TimeSeriesPredictor(prediction_length=self.prediction_length, path=temp_dir).fit(
@@ -73,6 +76,9 @@ class Chronos(BaseDetector):
 
         self.decision_scores_ = padded_decision_scores
 
+        # Finally, process decision scores to set threshold and labels
+        self._process_decision_scores()
+        return self
 
     def decision_function(self, X):
         """

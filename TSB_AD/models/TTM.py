@@ -20,7 +20,7 @@ from tsfm_public import (
     get_datasets
 )
 from tsfm_public.toolkit.get_model import get_model
-from tsfm_public.toolkit.visualization import plot_predictions
+#from tsfm_public.toolkit.visualization import plot_predictions
 from tsfm_public.toolkit.lr_finder import optimal_lr_finder
 import math
 
@@ -36,7 +36,9 @@ class TTM(BaseDetector):
                  fewshot_percent=5,
                  freeze_backbone=False,
                  loss="mse",
-                 quantile=0.5):
+                 quantile=0.5,
+                 contamination=0.1 #Not used but for compatibility with BaseDetector
+                 ):
         print("We are in __init__() from TTM.py")
         self.model_name = 'TTM'
         self.model_path = model_path
@@ -330,6 +332,7 @@ class TTM(BaseDetector):
         targets = targets.numpy() if isinstance(targets, torch.Tensor) else targets
 
         scores = (targets.squeeze() - preds.squeeze()) ** 2
+        print("scores.shape:", scores.shape)
 
         print("[FT] Calculating mean squared error")
         per_time_score = np.mean(scores, axis=2)
