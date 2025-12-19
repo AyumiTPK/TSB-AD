@@ -1,5 +1,5 @@
 """
-This function is adapted from [TTMs] by [Ekambaram et al.]
+This function is adapted from [TTMs]
 Original source: [https://github.com/ibm-granite/granite-tsfm]
 """
 
@@ -144,36 +144,45 @@ class TTM(BaseDetector):
 
         scores = (targets - preds) ** 2
 
-        #scores = (targets.squeeze() - preds.squeeze()) ** 2
-        #scores_merge = np.mean(scores, axis=0)
-
         print("[Zero] Calculating mean squared error")
         per_timestamp_score = np.mean(scores, axis=(1, 2))
-        per_feature_score = np.mean(scores, axis=1)
+        #per_feature_score = np.mean(scores, axis=1)
 
         pad_start = self.context_length + self.prediction_length - 1
 
         # timestamp scores
         padded_timestamp_score = np.zeros(len(data))
-        padded_timestamp_score[:pad_start] = per_timestamp_score[0]
-        padded_timestamp_score[pad_start:pad_start + len(per_timestamp_score)] = per_timestamp_score
+        # Pad start with first available score
+        start_pad_len = min(pad_start, len(data))
+        padded_timestamp_score[:start_pad_len] = per_timestamp_score[0]
+        # Fill remaining scores
+        end_idx = start_pad_len + len(per_timestamp_score)
+        padded_timestamp_score[start_pad_len:end_idx] = per_timestamp_score
+        # If necessary, pad the end
+        if end_idx < len(data):
+            padded_timestamp_score[end_idx:] = per_timestamp_score[-1]
+
+        # timestamp scores
+        #padded_timestamp_score = np.zeros(len(data))
+        #padded_timestamp_score[:pad_start] = per_timestamp_score[0]
+        #padded_timestamp_score[pad_start:pad_start + len(per_timestamp_score)] = per_timestamp_score
 
         # feature scores
-        num_features = data.shape[1]
-        padded_feature_score = np.zeros((len(data), num_features))
-        padded_feature_score[:pad_start, :] = per_feature_score[0]
-        padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
+        #num_features = data.shape[1]
+        #padded_feature_score = np.zeros((len(data), num_features))
+        #padded_feature_score[:pad_start, :] = per_feature_score[0]
+        #padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
 
         # time-feature scores
-        padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
-        padded_time_feature_score[:pad_start, :, :] = scores[0]
-        padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
-        self.time_feature_scores_ = padded_time_feature_score
+        #padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
+        #padded_time_feature_score[:pad_start, :, :] = scores[0]
+        #padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
+        #self.time_feature_scores_ = padded_time_feature_score
 
         print("[Zero] Padding complete")
         self.decision_scores_ = padded_timestamp_score
-        self.feature_scores_ = padded_feature_score
-        self.time_feature_scores_ = padded_time_feature_score
+        #self.feature_scores_ = padded_feature_score
+        #self.time_feature_scores_ = padded_time_feature_score
 
 
     def fit(self, data):
@@ -318,60 +327,61 @@ class TTM(BaseDetector):
             targets = targets[:, :, np.newaxis]
 
         scores = (targets - preds) ** 2
-        #scores = (targets.squeeze() - preds.squeeze()) ** 2
-        #scores_merge = np.mean(scores, axis=1)
 
         print("[FT] Calculating mean squared error")
         per_timestamp_score = np.mean(scores, axis=(1, 2))
-        per_feature_score = np.mean(scores, axis=1)
+        #per_feature_score = np.mean(scores, axis=1)
 
         pad_start = self.context_length + self.prediction_length - 1
 
         # timestamp scores
         padded_timestamp_score = np.zeros(len(data))
-        if pad_start + len(per_timestamp_score) > len(data):
-            raise ValueError(
-                f"[FT] Cannot pad timestamp scores: score={len(per_timestamp_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_timestamp_score[:pad_start] = per_timestamp_score[0]
-        padded_timestamp_score[pad_start:pad_start + len(per_timestamp_score)] = per_timestamp_score
+        # Pad start with first available score
+        start_pad_len = min(pad_start, len(data))
+        padded_timestamp_score[:start_pad_len] = per_timestamp_score[0]
+        # Fill remaining scores
+        end_idx = start_pad_len + len(per_timestamp_score)
+        padded_timestamp_score[start_pad_len:end_idx] = per_timestamp_score
+        # If necessary, pad the end
+        if end_idx < len(data):
+            padded_timestamp_score[end_idx:] = per_timestamp_score[-1]
 
         # feature scores
-        num_features = data.shape[1]
-        padded_feature_score = np.zeros((len(data), num_features))
-        if pad_start + len(per_feature_score) > len(data):
-            raise ValueError(
-                f"[FT] Cannot pad feature scores: score={len(per_feature_score)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_feature_score[:pad_start, :] = per_feature_score[0]
-        padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
+        #num_features = data.shape[1]
+        #padded_feature_score = np.zeros((len(data), num_features))
+        #if pad_start + len(per_feature_score) > len(data):
+        #    raise ValueError(
+        #        f"[FT] Cannot pad feature scores: score={len(per_feature_score)}, pad_start={pad_start}, data_len={len(data)}"
+        #    )
+        #padded_feature_score[:pad_start, :] = per_feature_score[0]
+        #padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
 
         # time-feature scores
-        padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
-        if pad_start + len(scores) > len(data):
-            raise ValueError(
-                f"[FT] Cannot pad time-feature scores: score={len(scores)}, pad_start={pad_start}, data_len={len(data)}"
-            )
-        padded_time_feature_score[:pad_start, :, :] = scores[0]
-        padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
-        self.time_feature_scores_ = padded_time_feature_score
+        #padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
+        #if pad_start + len(scores) > len(data):
+        #    raise ValueError(
+        #        f"[FT] Cannot pad time-feature scores: score={len(scores)}, pad_start={pad_start}, data_len={len(data)}"
+        #    )
+        #padded_time_feature_score[:pad_start, :, :] = scores[0]
+        #padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
+        #self.time_feature_scores_ = padded_time_feature_score
 
         print("[FT] Padding complete")
         self.decision_scores_ = padded_timestamp_score
-        self.feature_scores_ = padded_feature_score
-        self.time_feature_scores_ = padded_time_feature_score
+        #self.feature_scores_ = padded_feature_score
+        #self.time_feature_scores_ = padded_time_feature_score
 
     def decision_function(self, X):
         if not hasattr(self, 'decision_scores_') or self.decision_scores_ is None:
             raise RuntimeError("timestamp scores not available. ")
         return self.decision_scores_
 
-    def feature_importance(self):
+    #def feature_importance(self):
         if not hasattr(self, 'feature_scores_') or self.feature_scores_ is None:
             raise RuntimeError("Feature scores not available.")
         return self.feature_scores_
 
-    def time_feature(self):
+    #def time_feature(self):
         if not hasattr(self, 'time_feature_scores_') or self.time_feature_scores_ is None:
             raise RuntimeError("Time_feature scores not available.")
         return self.time_feature_scores_

@@ -3,9 +3,9 @@ import math
 from .utils.slidingWindows import find_length_rank
 
 Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY', 'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS', 
-                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS', 'TTM_ZS']
+                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS', 'TTM_ZS', 'Chronos2_ZS']
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
-                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT']
+                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT']
 
 def run_Unsupervise_AD(model_name, data, **kwargs):
     try:
@@ -461,4 +461,51 @@ def run_TTM_ZS(
 
     return tuple(results) if len(results) > 1 else results[0]
 
+def run_Chronos2_ZS(
+    data,
+    prediction_length=1,
+    model_name="amazon/chronos-2",
+    quantile_levels=[0.1, 0.5, 0.9],
+):
+    from .models.Chronos2 import Chronos2Detector
+
+    clf = Chronos2Detector(
+        model_name=model_name,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
+
+    clf.zero_shot(data)
+
+    score = clf.decision_function()
+    return score.ravel()
+
+def run_Chronos2_FT(
+    data_train,
+    data_test,
+    prediction_length=1,
+    model_name="amazon/chronos-2",
+    quantile_levels=[0.1, 0.5, 0.9],
+    num_steps=1000,
+    batch_size=32,
+    learning_rate=1e-5,
+):
+    from .models.Chronos2 import Chronos2Detector
+
+    clf = Chronos2Detector(
+        model_name=model_name,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
+
+    clf.fit(
+        data_train,
+        num_steps=num_steps,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        fine_tune=True,
+    )
+
+    score = clf.decision_function()
+    return score.ravel()
 
