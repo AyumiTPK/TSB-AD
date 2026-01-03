@@ -26,16 +26,26 @@ class Chronos2Detector(BaseDetector):
         )
         self.decision_scores_ = None
 
+    #def _compute_scores(self, actual, pred):
+        #scores = (actual - pred) ** 2
+        #padded_scores = np.zeros(len(actual))
+
+        #pad_start = self.prediction_length - 1
+        #start_pad_len = min(pad_start, len(actual))
+        #padded_scores[:start_pad_len] = scores[0]  # pad start
+        #padded_scores[start_pad_len:start_pad_len + len(scores)] = scores
+        #if start_pad_len + len(scores) < len(actual):
+        #    padded_scores[start_pad_len + len(scores):] = scores[-1]  # pad end
+
+        #return padded_scores
+
     def _compute_scores(self, actual, pred):
         scores = (actual - pred) ** 2
         padded_scores = np.zeros(len(actual))
 
-        pad_start = self.prediction_length - 1
-        start_pad_len = min(pad_start, len(actual))
-        padded_scores[:start_pad_len] = scores[0]  # pad start
-        padded_scores[start_pad_len:start_pad_len + len(scores)] = scores
-        if start_pad_len + len(scores) < len(actual):
-            padded_scores[start_pad_len + len(scores):] = scores[-1]  # pad end
+        pad_len = self.prediction_length - 1 # number of initial timesteps that cannot be scored
+        padded_scores[:pad_len] = scores[0]  # pad the beginning with the first available score
+        padded_scores[pad_len:] = scores # fill the rest with actual scores
 
         return padded_scores
 

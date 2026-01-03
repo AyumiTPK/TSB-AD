@@ -150,17 +150,21 @@ class TTM(BaseDetector):
 
         pad_start = self.context_length + self.prediction_length - 1
 
-        # timestamp scores
         padded_timestamp_score = np.zeros(len(data))
+        padded_timestamp_score[:pad_start] = per_timestamp_score[0]
+        padded_timestamp_score[pad_start:] = per_timestamp_score
+
+        # timestamp scores
+        #padded_timestamp_score = np.zeros(len(data))
         # Pad start with first available score
-        start_pad_len = min(pad_start, len(data))
-        padded_timestamp_score[:start_pad_len] = per_timestamp_score[0]
+        #start_pad_len = min(pad_start, len(data))
+        #padded_timestamp_score[:start_pad_len] = per_timestamp_score[0]
         # Fill remaining scores
-        end_idx = start_pad_len + len(per_timestamp_score)
-        padded_timestamp_score[start_pad_len:end_idx] = per_timestamp_score
-        # If necessary, pad the end
-        if end_idx < len(data):
-            padded_timestamp_score[end_idx:] = per_timestamp_score[-1]
+        #end_idx = start_pad_len + len(per_timestamp_score)
+        #padded_timestamp_score[start_pad_len:end_idx] = per_timestamp_score
+        # Pad the end
+        #if end_idx < len(data):
+        #    padded_timestamp_score[end_idx:] = per_timestamp_score[-1]
 
         # timestamp scores
         #padded_timestamp_score = np.zeros(len(data))
