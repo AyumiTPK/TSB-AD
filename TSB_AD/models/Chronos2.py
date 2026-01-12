@@ -25,70 +25,62 @@ class Chronos2Detector(BaseDetector):
             model_name, device_map=self.device
         )
         self.decision_scores_ = None
-
-    #def _compute_scores(self, actual, pred):
-        #scores = (actual - pred) ** 2
-        #padded_scores = np.zeros(len(actual))
-
-        #pad_start = self.prediction_length - 1
-        #start_pad_len = min(pad_start, len(actual))
-        #padded_scores[:start_pad_len] = scores[0]  # pad start
-        #padded_scores[start_pad_len:start_pad_len + len(scores)] = scores
-        #if start_pad_len + len(scores) < len(actual):
-        #    padded_scores[start_pad_len + len(scores):] = scores[-1]  # pad end
-
-        #return padded_scores
+        self._fitted = False
 
     def _compute_scores(self, actual, pred):
-        scores = (actual - pred) ** 2
-        padded_scores = np.zeros(len(actual))
+        scores = np.zeros(len(actual))
+        if len(pred) < len(actual):
+            # prediction is shorter by prediction_length - 1
+            pad_len = len(actual) - len(pred)
+            scores[:pad_len] = (actual[:pad_len] - pred[0]) ** 2
+            scores[pad_len:] = (actual[pad_len:] - pred) ** 2
+        else:
+            scores[self.prediction_length:] = (actual[self.prediction_length:] - pred[:-self.prediction_length]) ** 2
+            scores[:self.prediction_length] = scores[self.prediction_length]
+        return scores
 
-        pad_len = self.prediction_length - 1 # number of initial timesteps that cannot be scored
-        padded_scores[:pad_len] = scores[0]  # pad the beginning with the first available score
-        padded_scores[pad_len:] = scores # fill the rest with actual scores
+    def _convert_dataframe(self, data):
+        if isinstance(data, np.ndarray):
+            df = pd.DataFrame(data, columns=[f"target_{i}" for i in range(data.shape[1])])
+            # If univariate, rename to "target"
+            if df.shape[1] == 1:
+                df = df.rename(columns={"target_0": "target"})
+            return df
+        return data.copy()
 
-        return padded_scores
+    def _ensure_id(self, df, id_column="_id"):
+        if id_column not in df.columns:
+            df[id_column] = 0
+        return df, id_column
+
+    def _ensure_timestamp(self, df, timestamp_column=None):
+        if timestamp_column not in df.columns:
+            df["_timestamp"] = np.arange(len(df))
+            timestamp_column = "_timestamp"
+        return df, timestamp_column
 
     def zero_shot(
         self,
         data: pd.DataFrame,
-        #past_covariates: pd.DataFrame = None,
         future_covariates: pd.DataFrame = None,
-        id_column: str = None,
+        id_column: str = "_id",
         timestamp_column: str = None,
-        predict_batches_jointly: bool = False,
     ):
 
-        if isinstance(data, np.ndarray):
-            data = pd.DataFrame(data, columns=[f"col_{i}" for i in range(data.shape[1])])
-        elif not isinstance(data, pd.DataFrame):
-            raise TypeError(f"Expected pd.DataFrame or np.ndarray, got {type(data)}")
+        df = self._convert_dataframe(data)
+        df, id_column = self._ensure_id(df, id_column)
+        df, timestamp_column = self._ensure_timestamp(df, timestamp_column)
 
-        df = data.copy()
-
-        if timestamp_column is None:
-            df["_timestamp"] = np.arange(len(df))
-            timestamp_column_used = "_timestamp"
-        else:
-            timestamp_column_used = timestamp_column
-        if id_column is None:
-            df["_id"] = 0
-            id_column_used = "_id"
-        else:
-            id_column_used = id_column
-
-        exclude_cols = {timestamp_column_used, id_column_used}
-        target_cols = [c for c in df.columns if c not in exclude_cols]
+        target_cols = [c for c in df.columns if c not in {id_column, timestamp_column}]
 
         pred_df = self.pipeline.predict_df(
             df=df,
             future_df=future_covariates,
             prediction_length=self.prediction_length,
             quantile_levels=self.quantile_levels,
-            id_column=id_column_used,
-            timestamp_column=timestamp_column_used,
+            id_column=id_column,
+            timestamp_column=timestamp_column,
             target=target_cols,
-            predict_batches_jointly=predict_batches_jointly,
         )
 
         scores_list = []
@@ -101,33 +93,29 @@ class Chronos2Detector(BaseDetector):
             scores_list.append(padded_scores)
 
         self.decision_scores_ = np.mean(np.array(scores_list), axis=0)
+        return self.decision_scores_
 
-    def _prepare_inputs(self, data, past_covariates=None, future_covariates=None, id_column="item_id"):
-        train_inputs = []
-
+    def _prepare_inputs(self, data, past_covariates=None, future_covariates=None, id_column="_id"):
         if isinstance(data, np.ndarray):
-            data = pd.DataFrame(data, columns=[f"col_{i}" for i in range(data.shape[1])])
-        elif not isinstance(data, pd.DataFrame):
-            raise TypeError(f"Expected pd.DataFrame or np.ndarray, got {type(data)}")
+            df = pd.DataFrame(data, columns=[f"col_{i}" for i in range(data.shape[1])])
+        else:
+            df = data.copy()
 
-        df = data.copy()
-        print(type(df))
-
-        group_iter = [(None, data)] if id_column is None else data.groupby(id_column)
-        for item_id, group in group_iter:
+        train_inputs = []
+        for item_id, group in df.groupby(id_column):
             input_dict = {"target": group["target"].values}
 
             # Past covariates
             if past_covariates:
                 input_dict["past_covariates"] = {col: group[col].values for col in past_covariates}
             else:
-                input_dict["past_covariates"] = None
+                input_dict["past_covariates"] = {}
 
             # Future covariates
             if future_covariates:
                 input_dict["future_covariates"] = {col: None for col in future_covariates}
             else:
-                input_dict["future_covariates"] = None
+                input_dict["future_covariates"] = {}
 
             train_inputs.append(input_dict)
         return train_inputs
@@ -137,7 +125,7 @@ class Chronos2Detector(BaseDetector):
         data: pd.DataFrame,
         past_covariates=None,
         future_covariates=None,
-        id_column="item_id",
+        id_column="_id",
         timestamp_column="timestamp",
         num_steps=1000,
         batch_size=32,
@@ -145,9 +133,13 @@ class Chronos2Detector(BaseDetector):
         fine_tune=True,
     ):
         if fine_tune:
+            df = self._convert_dataframe(data)
+            df, id_column = self._ensure_id(df, id_column)
+
             train_inputs = self._prepare_inputs(
-                data, past_covariates=past_covariates, future_covariates=future_covariates, id_column=id_column
+                df, past_covariates=past_covariates, future_covariates=future_covariates, id_column=id_column
             )
+
             self.pipeline = self.pipeline.fit(
                 inputs=train_inputs,
                 prediction_length=self.prediction_length,
@@ -155,11 +147,21 @@ class Chronos2Detector(BaseDetector):
                 batch_size=batch_size,
                 learning_rate=learning_rate,
             )
+        self._fitted = True
 
-        # Predict
-        target_cols = [col for col in data.columns if col not in [id_column, timestamp_column]]
+    def decision_function(self, data, future_covariates=None, id_column="_id", timestamp_column="timestamp"):
+        if not self._fitted:
+            raise RuntimeError("Model must be fine-tuned before calling decision_function")
+
+        df = self._convert_dataframe(data)
+        df, id_column = self._ensure_id(df, id_column)
+        df, timestamp_column = self._ensure_timestamp(df, timestamp_column)
+
+        target_cols = [c for c in df.columns if c not in {id_column, timestamp_column}]
+
+        print("self.quantile_levels:", self.quantile_levels)
         pred_df = self.pipeline.predict_df(
-            df=data,
+            df=df,
             future_df=future_covariates,
             prediction_length=self.prediction_length,
             quantile_levels=self.quantile_levels,
@@ -168,18 +170,12 @@ class Chronos2Detector(BaseDetector):
             target=target_cols,
         )
 
-        # Compute anomaly scores
         scores_list = []
         for target in target_cols:
-            actual = data[target].values
-            pred = pred_df.loc[
-                pred_df["target_name"] == target, "predictions"
-            ].values
-            padded_scores = self._compute_scores(actual, pred)
-            scores_list.append(padded_scores)
+            actual = df[target].values
+            pred = pred_df.loc[pred_df["target_name"] == target, "predictions"].values
+            scores_list.append(self._compute_scores(actual, pred))
 
-        self.decision_scores_ = np.mean(np.array(scores_list), axis=0)
+        return np.mean(np.array(scores_list), axis=0)
 
-    def decision_function(self, X=None):
-        """Return anomaly scores computed during fit or zero-shot."""
-        return self.decision_scores_
+

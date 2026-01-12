@@ -1,3 +1,5 @@
+import traceback
+
 import numpy as np
 import math
 from .utils.slidingWindows import find_length_rank
@@ -7,36 +9,48 @@ Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IFo
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
                         'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT']
 
-def run_Unsupervise_AD(model_name, data, **kwargs):
-    try:
-        function_name = f'run_{model_name}'
-        function_to_call = globals()[function_name]
-        results = function_to_call(data, **kwargs)
-        return results
-    except KeyError:
-        error_message = f"Model function '{function_name}' is not defined."
-        print(error_message)
-        return error_message
-    except Exception as e:
-        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
-        print(error_message)
-        return error_message
+def run_Chronos2_ZS(
+    data,
+    prediction_length=1,
+    model_name="amazon/chronos-2",
+    quantile_levels=[0.1, 0.5, 0.9],
+):
+    from TSB_AD.models.Chronos2 import Chronos2Detector
 
+    clf = Chronos2Detector(
+        model_name=model_name,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
 
-def run_Semisupervise_AD(model_name, data_train, data_test, **kwargs):
-    try:
-        function_name = f'run_{model_name}'
-        function_to_call = globals()[function_name]
-        results = function_to_call(data_train, data_test, **kwargs)
-        return results
-    except KeyError:
-        error_message = f"Model function '{function_name}' is not defined."
-        print(error_message)
-        return error_message
-    except Exception as e:
-        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
-        print(error_message)
-        return error_message
+    score = clf.zero_shot(data)
+    return score.ravel()
+
+def run_Chronos2_FT(
+    data_train,
+    data_test,
+    prediction_length=1,
+    model_name="amazon/chronos-2",
+    quantile_levels=[0.1, 0.5, 0.9],
+    num_steps=1000,
+    batch_size=32,
+    learning_rate=1e-5,
+):
+    from TSB_AD.models.Chronos2 import Chronos2Detector
+    clf = Chronos2Detector(
+        model_name=model_name,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
+    clf.fit(
+        data_train,
+        num_steps=num_steps,
+        batch_size=batch_size,
+        learning_rate=learning_rate,
+        fine_tune=True,
+    )
+    score = clf.decision_function(data_test)
+    return score.ravel()
 
 def run_FFT(data, ifft_parameters=5, local_neighbor_window=21, local_outlier_threshold=0.6, max_region_size=50, max_sign_change_distance=10):
     from .models.FFT import FFT
@@ -461,51 +475,34 @@ def run_TTM_ZS(
 
     return tuple(results) if len(results) > 1 else results[0]
 
-def run_Chronos2_ZS(
-    data,
-    prediction_length=1,
-    model_name="amazon/chronos-2",
-    quantile_levels=[0.1, 0.5, 0.9],
-):
-    from .models.Chronos2 import Chronos2Detector
+def run_Unsupervise_AD(model_name, data, **kwargs):
+    try:
+        function_name = f'run_{model_name}'
+        function_to_call = globals()[function_name]
+        results = function_to_call(data, **kwargs)
+        return results
+    except KeyError:
+        error_message = f"Model function '{function_name}' is not defined."
+        print(error_message)
+        return error_message
+    except Exception as e:
+        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
+        print(error_message)
+        return error_message
 
-    clf = Chronos2Detector(
-        model_name=model_name,
-        prediction_length=prediction_length,
-        quantile_levels=quantile_levels,
-    )
 
-    clf.zero_shot(data)
-
-    score = clf.decision_function()
-    return score.ravel()
-
-def run_Chronos2_FT(
-    data_train,
-    data_test,
-    prediction_length=1,
-    model_name="amazon/chronos-2",
-    quantile_levels=[0.1, 0.5, 0.9],
-    num_steps=1000,
-    batch_size=32,
-    learning_rate=1e-5,
-):
-    from .models.Chronos2 import Chronos2Detector
-
-    clf = Chronos2Detector(
-        model_name=model_name,
-        prediction_length=prediction_length,
-        quantile_levels=quantile_levels,
-    )
-
-    clf.fit(
-        data_train,
-        num_steps=num_steps,
-        batch_size=batch_size,
-        learning_rate=learning_rate,
-        fine_tune=True,
-    )
-
-    score = clf.decision_function()
-    return score.ravel()
-
+def run_Semisupervise_AD(model_name, data_train, data_test, **kwargs):
+    try:
+        function_name = f'run_{model_name}'
+        function_to_call = globals()[function_name]
+        results = function_to_call(data_train, data_test, **kwargs)
+        return results
+    except KeyError:
+        traceback.print_exc()
+        error_message = f"Model function '{function_name}' is not defined."
+        print(error_message)
+        return error_message
+    except Exception as e:
+        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
+        print(error_message)
+        return error_message
