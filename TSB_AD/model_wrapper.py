@@ -15,9 +15,9 @@ def run_Chronos2_ZS(
     model_name="amazon/chronos-2",
     quantile_levels=[0.1, 0.5, 0.9],
 ):
-    from TSB_AD.models.Chronos2 import Chronos2Detector
+    from TSB_AD.models.Chronos2 import Chronos2
 
-    clf = Chronos2Detector(
+    clf = Chronos2(
         model_name=model_name,
         prediction_length=prediction_length,
         quantile_levels=quantile_levels,
@@ -36,8 +36,8 @@ def run_Chronos2_FT(
     batch_size=32,
     learning_rate=1e-5,
 ):
-    from TSB_AD.models.Chronos2 import Chronos2Detector
-    clf = Chronos2Detector(
+    from TSB_AD.models.Chronos2 import Chronos2
+    clf = Chronos2(
         model_name=model_name,
         prediction_length=prediction_length,
         quantile_levels=quantile_levels,
@@ -46,8 +46,7 @@ def run_Chronos2_FT(
         data_train,
         num_steps=num_steps,
         batch_size=batch_size,
-        learning_rate=learning_rate,
-        fine_tune=True,
+        learning_rate=learning_rate
     )
     score = clf.decision_function(data_test)
     return score.ravel()
