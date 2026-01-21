@@ -317,4 +317,9 @@ Optimal_Uni_algo_HP_dict = {
     'TTM_FT': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
     'Chronos2_ZS': {'prediction_length': 1},
     'Chronos2_FT': {'prediction_length': 1}
+    'TSPulse_ZS': {'win_size': 96, 
+                   'prediction_mode': 'time'},
+    'TSPulse_FT': {'win_size': 96, 
+                   'prediction_mode': 'time',
+                   'lr': 1e-4},
 }

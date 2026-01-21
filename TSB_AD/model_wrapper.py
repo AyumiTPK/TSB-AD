@@ -5,53 +5,40 @@ import math
 from .utils.slidingWindows import find_length_rank
 
 Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY', 'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS', 
-                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS', 'TTM_ZS', 'Chronos2_ZS']
+                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS',  'TTM_ZS', 'Chronos2_ZS', 'TSPulse_ZS']
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
-                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT']
+                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT', 'TSPulse_FT']
+      
+  def run_Unsupervise_AD(model_name, data, **kwargs):
+    try:
+        function_name = f'run_{model_name}'
+        function_to_call = globals()[function_name]
+        results = function_to_call(data, **kwargs)
+        return results
+    except KeyError:
+        error_message = f"Model function '{function_name}' is not defined."
+        print(error_message)
+        return error_message
+    except Exception as e:
+        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
+        print(error_message)
+        return error_message
 
-def run_Chronos2_ZS(
-    data,
-    prediction_length=1,
-    model_name="amazon/chronos-2",
-    quantile_levels=[0.1, 0.5, 0.9],
-):
-    from TSB_AD.models.Chronos2 import Chronos2
-
-    clf = Chronos2(
-        model_name=model_name,
-        prediction_length=prediction_length,
-        quantile_levels=quantile_levels,
-    )
-
-    #score = clf.zero_shot(data)
-    score = clf.decision_function(data, use_pretrained=True)
-    return score.ravel()
-
-def run_Chronos2_FT(
-    data_train,
-    data_test,
-    prediction_length=1,
-    model_name="amazon/chronos-2",
-    quantile_levels=[0.1, 0.5, 0.9],
-    num_steps=1000,
-    batch_size=32,
-    learning_rate=1e-5,
-):
-    from TSB_AD.models.Chronos2 import Chronos2
-    clf = Chronos2(
-        model_name=model_name,
-        prediction_length=prediction_length,
-        quantile_levels=quantile_levels,
-    )
-    clf.fit(
-        data_train,
-        num_steps=num_steps,
-        batch_size=batch_size,
-        learning_rate=learning_rate
-    )
-    #score = clf.decision_function(data_test)
-    score = clf.decision_function(data_test, use_pretrained=False)
-    return score.ravel()
+def run_Semisupervise_AD(model_name, data_train, data_test, **kwargs):
+    try:
+        function_name = f'run_{model_name}'
+        function_to_call = globals()[function_name]
+        results = function_to_call(data_train, data_test, **kwargs)
+        return results
+    except KeyError:
+        traceback.print_exc()
+        error_message = f"Model function '{function_name}' is not defined."
+        print(error_message)
+        return error_message
+    except Exception as e:
+        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
+        print(error_message)
+        return error_message
 
 def run_FFT(data, ifft_parameters=5, local_neighbor_window=21, local_outlier_threshold=0.6, max_region_size=50, max_sign_change_distance=10):
     from .models.FFT import FFT
@@ -420,7 +407,6 @@ def run_M2N2(
     score = clf.decision_function(data_test)
     return score.ravel()
 
-
 def run_TTM_FT(
     data_train,
     data_test,
@@ -474,35 +460,101 @@ def run_TTM_ZS(
         results.append(clf.time_feature())
 
     return tuple(results) if len(results) > 1 else results[0]
+  
+def run_Chronos2_ZS(
+    data,
+    prediction_length=1,
+    model_name="amazon/chronos-2",
+    quantile_levels=[0.1, 0.5, 0.9],
+):
+    from TSB_AD.models.Chronos2 import Chronos2
 
-def run_Unsupervise_AD(model_name, data, **kwargs):
-    try:
-        function_name = f'run_{model_name}'
-        function_to_call = globals()[function_name]
-        results = function_to_call(data, **kwargs)
-        return results
-    except KeyError:
-        error_message = f"Model function '{function_name}' is not defined."
-        print(error_message)
-        return error_message
-    except Exception as e:
-        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
-        print(error_message)
-        return error_message
+    clf = Chronos2(
+        model_name=model_name,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
+    
+    #score = clf.zero_shot(data)
+    score = clf.decision_function(data, use_pretrained=True)
+    return score.ravel()
 
+def run_Chronos2_FT(
+    data_train,
+    data_test,
+    prediction_length=1,
+    model_name="amazon/chronos-2",
+    quantile_levels=[0.1, 0.5, 0.9],
+    num_steps=1000,
+    batch_size=32,
+    learning_rate=1e-5,
+):
+    from TSB_AD.models.Chronos2 import Chronos2
+    clf = Chronos2(
+        model_name=model_name,
+        prediction_length=prediction_length,
+        quantile_levels=quantile_levels,
+    )
+    clf.fit(
+        data_train,
+        num_steps=num_steps,
+        batch_size=batch_size,
+        learning_rate=learning_rate
+    )
+    #score = clf.decision_function(data_test)
+    score = clf.decision_function(data_test, use_pretrained=False)
+    return score.ravel()
 
-def run_Semisupervise_AD(model_name, data_train, data_test, **kwargs):
-    try:
-        function_name = f'run_{model_name}'
-        function_to_call = globals()[function_name]
-        results = function_to_call(data_train, data_test, **kwargs)
-        return results
-    except KeyError:
-        traceback.print_exc()
-        error_message = f"Model function '{function_name}' is not defined."
-        print(error_message)
-        return error_message
-    except Exception as e:
-        error_message = f"An error occurred while running the model '{function_name}': {str(e)}"
-        print(error_message)
-        return error_message
+def run_TSPulse_ZS(data, 
+                   model="ibm-granite/granite-timeseries-tspulse-r1",
+                   win_size=96,
+                   batch_size=256,
+                   smoothing_window=8,
+                   prediction_mode="time",
+                   **kwargs,
+                   ):
+    from TSB_AD.models.TSPulse import TSPulsePipeline
+    num_input_channels = data.shape[1]
+    clf = TSPulsePipeline(
+            model_path=model,
+            num_input_channels=num_input_channels,
+            batch_size=batch_size,
+            aggr_win_size=win_size,
+            smoothing_window=smoothing_window,
+            prediction_mode=prediction_mode,
+        )
+    score = clf.decision_function(data)
+    return score.ravel()
+
+def run_TSPulse_FT(data_train,
+                   data_test,
+                   model="ibm-granite/granite-timeseries-tspulse-r1",
+                   win_size=96,
+                   batch_size=256,
+                   smoothing_window=8,
+                   prediction_mode="time",
+                   decoder_mode="common_channels",
+                   num_epochs=20,
+                   freeze_backbone=False,
+                   validation_fraction=0.2,
+                   lr=1e-4,
+                   **kwargs):
+    from TSB_AD.models.TSPulse import TSPulsePipeline
+    num_input_channels = data_train.shape[1]
+
+    clf = TSPulsePipeline(
+            model_path=model,
+            num_input_channels=num_input_channels,
+            batch_size=batch_size,
+            aggr_win_size=win_size,
+            smoothing_window=smoothing_window,
+            prediction_mode=prediction_mode,
+            finetune_decoder_mode=decoder_mode,
+            finetune_validation=validation_fraction,
+            finetune_freeze_backbone=freeze_backbone,
+            finetune_epochs=num_epochs,
+            finetune_lr=lr,
+        )
+    clf.fit(data_train)
+    score = clf.decision_function(data_test)
+    return score.ravel()
