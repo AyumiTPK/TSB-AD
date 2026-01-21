@@ -7,10 +7,10 @@ Multi_algo_HP_dict = {
     'LOF': {
         'n_neighbors': [10, 20, 30, 40, 50],
         'metric': ['minkowski', 'manhattan', 'euclidean']
-    },    
+    },
     'PCA': {
         'n_components': [0.25, 0.5, 0.75, None]
-    },        
+    },
     'HBOS': {
         'n_bins': [5, 10, 20, 30, 40],
         'tol': [0.1, 0.3, 0.5, 0.7]
@@ -18,28 +18,28 @@ Multi_algo_HP_dict = {
     'OCSVM': {
         'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
         'nu': [0.1, 0.3, 0.5, 0.7]
-    },        
+    },
     'MCD': {
         'support_fraction': [0.2, 0.4, 0.6, 0.8, None]
     },
     'KNN': {
         'n_neighbors': [10, 20, 30, 40, 50],
         'method': ['largest', 'mean', 'median']
-    },        
+    },
     'KMeansAD': {
         'n_clusters': [10, 20, 30, 40],
         'window_size': [10, 20, 30, 40]
     },
     'COPOD': {
         'HP': [None]
-    },    
+    },
     'CBLOF': {
         'n_clusters': [4, 8, 16, 32],
         'alpha': [0.6, 0.7, 0.8, 0.9]
     },
     'EIF': {
         'n_trees': [25, 50, 100, 200]
-    },   
+    },
     'RobustPCA': {
         'max_iter': [500, 1000, 1500]
     },
@@ -53,15 +53,15 @@ Multi_algo_HP_dict = {
     'LSTMAD': {
         'window_size': [50, 100, 150],
         'lr': [0.0004, 0.0008]
-    },  
+    },
     'TranAD': {
         'win_size': [5, 10, 50],
         'lr': [1e-3, 1e-4]
-    },  
+    },
     'AnomalyTransformer': {
         'win_size': [50, 100, 150],
         'lr': [1e-3, 1e-4, 1e-5]
-    },  
+    },
     'OmniAnomaly': {
         'win_size': [5, 50, 100],
         'lr': [0.002, 0.0002]
@@ -69,11 +69,11 @@ Multi_algo_HP_dict = {
     'USAD': {
         'win_size': [5, 50, 100],
         'lr': [1e-3, 1e-4, 1e-5]
-    },  
+    },
     'Donut': {
         'win_size': [60, 90, 120],
         'lr': [1e-3, 1e-4, 1e-5]
-    },  
+    },
     'TimesNet': {
         'win_size': [32, 96, 192],
         'lr': [1e-3, 1e-4, 1e-5]
@@ -81,45 +81,62 @@ Multi_algo_HP_dict = {
     'FITS': {
         'win_size': [100, 200],
         'lr': [1e-3, 1e-4, 1e-5]
-    },    
+    },
     'OFA': {
         'win_size': [50, 100, 150]
     },
-    'TTM': {
+    'TTM_ZS': {
         'context_length': [256, 512],
         'prediction_length': [48, 96],
         'batch_size': [2, 4, 8]
-},
+    },
+    'TTM_FT': {
+        'context_length': [256, 512],
+        'prediction_length': [48, 96],
+        'batch_size': [2, 4, 8]
+    },
+    'Chronos2_FT': {
+        'prediction_length': [1, 5, 10],
+        'learning_rate': [1e-5, 5e-5],
+        'batch_size': [16, 32],
+    },
+    'Chronos2_ZS': {
+        'prediction_length': [1, 5, 10],
+        'learning_rate': [1e-5, 5e-5],
+        'batch_size': [16, 32],
+    }
 }
 
 
 Optimal_Multi_algo_HP_dict = {
     'IForest': {'n_estimators': 25, 'max_features': 0.8},
-    'LOF': {'n_neighbors': 50, 'metric': 'euclidean'},    
-    'PCA': {'n_components': 0.25},        
+    'LOF': {'n_neighbors': 50, 'metric': 'euclidean'},
+    'PCA': {'n_components': 0.25},
     'HBOS': {'n_bins': 30, 'tol': 0.5},
-    'OCSVM': {'kernel': 'rbf', 'nu': 0.1},        
+    'OCSVM': {'kernel': 'rbf', 'nu': 0.1},
     'MCD': {'support_fraction': 0.8},
-    'KNN': {'n_neighbors': 50, 'method': 'mean'},        
+    'KNN': {'n_neighbors': 50, 'method': 'mean'},
     'KMeansAD': {'n_clusters': 10, 'window_size': 40},
     'KShapeAD': {'n_clusters': 20, 'window_size': 40},
-    'COPOD': {'n_jobs':1},    
+    'COPOD': {'n_jobs':1},
     'CBLOF': {'n_clusters': 4, 'alpha': 0.6},
-    'EIF': {'n_trees': 50},   
+    'EIF': {'n_trees': 50},
     'RobustPCA': {'max_iter': 1000},
     'AutoEncoder': {'hidden_neurons': [128, 64]},
     'CNN': {'window_size': 50, 'num_channel': [32, 32, 40]},
-    'LSTMAD': {'window_size': 150, 'lr': 0.0008},  
-    'TranAD': {'win_size': 10, 'lr': 0.001},  
-    'AnomalyTransformer': {'win_size': 50, 'lr': 0.001},  
+    'LSTMAD': {'window_size': 150, 'lr': 0.0008},
+    'TranAD': {'win_size': 10, 'lr': 0.001},
+    'AnomalyTransformer': {'win_size': 50, 'lr': 0.001},
     'OmniAnomaly': {'win_size': 100, 'lr': 0.002},
-    'USAD': {'win_size': 100, 'lr': 0.001},  
-    'Donut': {'win_size': 60, 'lr': 0.001},  
+    'USAD': {'win_size': 100, 'lr': 0.001},
+    'Donut': {'win_size': 60, 'lr': 0.001},
     'TimesNet': {'win_size': 96, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.001},
     'OFA': {'win_size': 50},
-    'TTM': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
-
+    'TTM_ZS': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
+    'TTM_FT': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
+    'Chronos2_FT': {'prediction_length': 1,'learning_rate': 1e-5,'batch_size': 32,},
+    'Chronos2_ZS': {'prediction_length': 1, 'learning_rate': 1e-5, 'batch_size': 32, }
 }
 
 
@@ -134,10 +151,10 @@ Uni_algo_HP_dict = {
     'Sub_LOF': {
         'periodicity': [1, 2, 3],
         'n_neighbors': [10, 20, 30, 40, 50]
-    }, 
+    },
     'LOF': {
         'n_neighbors': [10, 20, 30, 40, 50]
-    }, 
+    },
     'POLY': {
         'periodicity': [1, 2, 3],
         'power': [1, 2, 3, 4]
@@ -151,7 +168,7 @@ Uni_algo_HP_dict = {
     },
     'SAND': {
         'periodicity': [1, 2, 3]
-    }, 
+    },
     'Series2Graph': {
         'periodicity': [1, 2, 3]
     },
@@ -193,7 +210,7 @@ Uni_algo_HP_dict = {
     'LSTMAD': {
         'window_size': [50, 100, 150],
         'lr': [0.0004, 0.0008]
-    },  
+    },
     'TranAD': {
         'win_size': [5, 10, 50],
         'lr': [1e-3, 1e-4]
@@ -201,7 +218,7 @@ Uni_algo_HP_dict = {
     'AnomalyTransformer': {
         'win_size': [50, 100, 150],
         'lr': [1e-3, 1e-4, 1e-5]
-    },  
+    },
     'OmniAnomaly': {
         'win_size': [5, 50, 100],
         'lr': [0.002, 0.0002]
@@ -209,11 +226,11 @@ Uni_algo_HP_dict = {
     'USAD': {
         'win_size': [5, 50, 100],
         'lr': [1e-3, 1e-4, 1e-5]
-    },  
+    },
     'Donut': {
         'win_size': [60, 90, 120],
         'lr': [1e-3, 1e-4, 1e-5]
-    },  
+    },
     'TimesNet': {
         'win_size': [32, 96, 192],
         'lr': [1e-3, 1e-4, 1e-5]
@@ -224,10 +241,10 @@ Uni_algo_HP_dict = {
     },
     'OFA': {
         'win_size': [50, 100, 150]
-    },    
+    },
     'Lag_Llama': {
         'win_size': [32, 64, 96]
-    },    
+    },
     'Chronos': {
         'win_size': [50, 100, 150]
     },
@@ -240,11 +257,23 @@ Uni_algo_HP_dict = {
     'MOMENT_FT': {
         'win_size': [64, 128, 256]
     },
-    'TTM': {
+    'TTM_ZS': {
         'context_length': [256, 512],
         'prediction_length': [48, 96],
         'batch_size': [2, 4, 8]
     },
+    'TTM_FT': {
+        'context_length': [256, 512],
+        'prediction_length': [48, 96],
+        'batch_size': [2, 4, 8]
+    },
+    'Chronos2_ZS': {
+        'prediction_length': [1, 5, 10]
+    },
+    'Chronos2_FT': {
+        'prediction_length': [1, 5, 10]
+    }
+
 }
 
 Optimal_Uni_algo_HP_dict = {
@@ -258,23 +287,23 @@ Optimal_Uni_algo_HP_dict = {
     'SAND': {'periodicity': 1},
     'Series2Graph': {'periodicity': 1},
     'SR': {'periodicity': 1},
-    'Sub_PCA': {'periodicity': 1, 'n_components': None},        
+    'Sub_PCA': {'periodicity': 1, 'n_components': None},
     'Sub_HBOS': {'periodicity': 1, 'n_bins': 10},
-    'Sub_OCSVM': {'periodicity': 2, 'kernel': 'rbf'},        
+    'Sub_OCSVM': {'periodicity': 2, 'kernel': 'rbf'},
     'Sub_MCD': {'periodicity': 3, 'support_fraction': None},
-    'Sub_KNN': {'periodicity': 2, 'n_neighbors': 50}, 
+    'Sub_KNN': {'periodicity': 2, 'n_neighbors': 50},
     'KMeansAD_U': {'periodicity': 2, 'n_clusters': 10},
     'KShapeAD': {'periodicity': 1},
     'FFT': {},
     'Left_STAMPi': {},
     'AutoEncoder': {'window_size': 100, 'hidden_neurons': [128, 64]},
     'CNN': {'window_size': 50, 'num_channel': [32, 32, 40]},
-    'LSTMAD': {'window_size': 100, 'lr': 0.0008},  
+    'LSTMAD': {'window_size': 100, 'lr': 0.0008},
     'TranAD': {'win_size': 10, 'lr': 0.0001},
-    'AnomalyTransformer': {'win_size': 50, 'lr': 0.001},  
+    'AnomalyTransformer': {'win_size': 50, 'lr': 0.001},
     'OmniAnomaly': {'win_size': 5, 'lr': 0.002},
     'USAD': {'win_size': 100, 'lr': 0.001},
-    'Donut': {'win_size': 60, 'lr': 0.0001},  
+    'Donut': {'win_size': 60, 'lr': 0.0001},
     'TimesNet': {'win_size': 32, 'lr': 0.0001},
     'FITS': {'win_size': 100, 'lr': 0.0001},
     'OFA': {'win_size': 50},
@@ -284,5 +313,13 @@ Optimal_Uni_algo_HP_dict = {
     'MOMENT_ZS': {'win_size': 64},
     'MOMENT_FT': {'win_size': 64},
     'M2N2': {},
-    'TTM': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
+    'TTM_ZS': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
+    'TTM_FT': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
+    'Chronos2_ZS': {'prediction_length': 1},
+    'Chronos2_FT': {'prediction_length': 1}
+    'TSPulse_ZS': {'win_size': 96, 
+                   'prediction_mode': 'time'},
+    'TSPulse_FT': {'win_size': 96, 
+                   'prediction_mode': 'time',
+                   'lr': 1e-4},
 }
