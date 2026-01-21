@@ -23,7 +23,8 @@ def run_Chronos2_ZS(
         quantile_levels=quantile_levels,
     )
 
-    score = clf.zero_shot(data)
+    #score = clf.zero_shot(data)
+    score = clf.decision_function(data, use_pretrained=True)
     return score.ravel()
 
 def run_Chronos2_FT(
@@ -48,7 +49,8 @@ def run_Chronos2_FT(
         batch_size=batch_size,
         learning_rate=learning_rate
     )
-    score = clf.decision_function(data_test)
+    #score = clf.decision_function(data_test)
+    score = clf.decision_function(data_test, use_pretrained=False)
     return score.ravel()
 
 def run_FFT(data, ifft_parameters=5, local_neighbor_window=21, local_outlier_threshold=0.6, max_region_size=50, max_sign_change_distance=10):
@@ -438,7 +440,7 @@ def run_TTM_FT(
         fewshot_percent=fewshot_percent
     )
     clf.fit(data_train)
-    results = [clf.decision_function(data_test)]
+    results = [clf.decision_function(data_test, use_pretrained=False)]
 
     if return_feature:
         results.append(clf.feature_importance())
@@ -463,8 +465,7 @@ def run_TTM_ZS(
         prediction_length=prediction_length,
         model_path=model_path
     )
-    clf.zero_shot(data)
-    results = [clf.decision_function(data)]
+    results = [clf.decision_function(data, use_pretrained=True)]
 
     if return_feature:
         results.append(clf.feature_importance())

@@ -207,39 +207,3 @@ class Chronos2(BaseDetector):
         if not self._fitted and not use_pretrained:
             raise RuntimeError("Model must be fine-tuned before calling decision_function")
         return self.zero_shot(data, future_covariates, id_column, timestamp_column, use_pretrained=use_pretrained)
-'''
-    def decision_function(self, data, future_covariates=None, id_column="_id", timestamp_column="_timestamp"):
-        if not self._fitted:
-            raise RuntimeError("Model must be fine-tuned before calling decision_function")
-
-        df = self._convert_dataframe(data)
-        id_column, timestamp_column = self._infer_id_and_timestamp(df, id_column, timestamp_column)
-        #df, id_column = self._ensure_id(df, id_column)
-        #df, timestamp_column = self._ensure_timestamp(df, timestamp_column)
-        if id_column is None:
-            df["_id"] = 0
-            id_column = "_id"
-        if timestamp_column is None:
-            df["_timestamp"] = np.arange(len(df))
-            timestamp_column = "_timestamp"
-
-        target_cols = [c for c in df.columns if c not in {id_column, timestamp_column}]
-
-        pred_df = self.pipeline.predict_df(
-            df=df,
-            future_df=future_covariates,
-            prediction_length=self.prediction_length,
-            quantile_levels=self.quantile_levels,
-            id_column=id_column,
-            timestamp_column=timestamp_column,
-            target=target_cols,
-        )
-
-        scores_list = []
-        for target in target_cols:
-            actual = df[target].values
-            pred = pred_df.loc[pred_df["target_name"] == target, "predictions"].values
-            scores_list.append(self._compute_scores(actual, pred))
-
-        return np.mean(np.array(scores_list), axis=0)
-'''

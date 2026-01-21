@@ -3,6 +3,7 @@
 # License: Apache-2.0 License
 
 import pandas as pd
+import numpy as np
 import torch
 import random, argparse
 from sklearn.preprocessing import MinMaxScaler

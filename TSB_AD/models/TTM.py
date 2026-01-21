@@ -27,16 +27,15 @@ import math
 class TTM(BaseDetector):
     def __init__(self,
                  model_path="ibm-granite/granite-timeseries-ttm-r2",
-                 context_length=24, #512,
-                 prediction_length=6,#96,
-                 batch_size=1,#4
-                 num_epochs=1,#50
+                 context_length=512,
+                 prediction_length=96,
+                 batch_size=4,
+                 num_epochs=50,
                  learning_rate=0.001,
                  fewshot_percent=5,
                  freeze_backbone=False,
                  loss="mse",
                  quantile=0.5):
-        #super().__init__(contamination=0.1)
         self.model_name = 'TTM'
         self.model_path = model_path
         self.context_length = context_length
@@ -48,13 +47,15 @@ class TTM(BaseDetector):
         self.freeze_backbone = freeze_backbone
         self.loss = loss
         self.quantile = quantile
+        self.pretrained_model = None
         self.model = None
         self.tsp = None
         self.column_specifiers = {}
         self.split_config = {}
+        self.decision_scores_ = None
+        self._fitted = False
 
     def zero_shot(self, data):
-
         print("[Zero] Reconstructing DataFrame")
         num_features = data.shape[1]
         feature_names = [f"feature_{i}" for i in range(num_features)]
@@ -87,24 +88,34 @@ class TTM(BaseDetector):
         )
 
         print("[Zero] Loading model")
-        self.model = get_model(
-            self.model_path,
-            context_length=self.context_length,
-            prediction_length=self.prediction_length,
-            freq_prefix_tuning=False,
-            freq=None,
-            prefer_l1_loss=False,
-            prefer_longer_context=True,
+        if self.pretrained_model is None:
+            self.pretrained_model = get_model(
+                self.model_path,
+                context_length=self.context_length,
+                prediction_length=self.prediction_length,
+                freq_prefix_tuning=False,
+                freq=None,
+                prefer_l1_loss=False,
+                prefer_longer_context=True,
+            )
+        #self.model = get_model(
+        #    self.model_path,
+        #    context_length=self.context_length,
+        #    prediction_length=self.prediction_length,
+        #    freq_prefix_tuning=False,
+        #    freq=None,
+        #    prefer_l1_loss=False,
+        #    prefer_longer_context=True,
             #loss=self.loss,
             #quantile=self.quantile,
-        )
+        #)
 
         print("[Zero] Creating datasets")
         dset_train, dset_val, dset_test = get_datasets(
             self.tsp,
             df,
             self.split_config,
-            use_frequency_token=self.model.config.resolution_prefix_tuning
+            use_frequency_token=self.pretrained_model.config.resolution_prefix_tuning
         )
 
         print("[Zero] Training")
@@ -117,7 +128,8 @@ class TTM(BaseDetector):
         )
 
         zeroshot_trainer = Trainer(
-            model=self.model,
+            #model=self.model,
+            model=self.pretrained_model,
             args=training_args,
         )
 
@@ -146,51 +158,16 @@ class TTM(BaseDetector):
 
         print("[Zero] Calculating mean squared error")
         per_timestamp_score = np.mean(scores, axis=(1, 2))
-        #per_feature_score = np.mean(scores, axis=1)
 
         pad_start = self.context_length + self.prediction_length - 1
-
         padded_timestamp_score = np.zeros(len(data))
         padded_timestamp_score[:pad_start] = per_timestamp_score[0]
         padded_timestamp_score[pad_start:] = per_timestamp_score
 
-        # timestamp scores
-        #padded_timestamp_score = np.zeros(len(data))
-        # Pad start with first available score
-        #start_pad_len = min(pad_start, len(data))
-        #padded_timestamp_score[:start_pad_len] = per_timestamp_score[0]
-        # Fill remaining scores
-        #end_idx = start_pad_len + len(per_timestamp_score)
-        #padded_timestamp_score[start_pad_len:end_idx] = per_timestamp_score
-        # Pad the end
-        #if end_idx < len(data):
-        #    padded_timestamp_score[end_idx:] = per_timestamp_score[-1]
-
-        # timestamp scores
-        #padded_timestamp_score = np.zeros(len(data))
-        #padded_timestamp_score[:pad_start] = per_timestamp_score[0]
-        #padded_timestamp_score[pad_start:pad_start + len(per_timestamp_score)] = per_timestamp_score
-
-        # feature scores
-        #num_features = data.shape[1]
-        #padded_feature_score = np.zeros((len(data), num_features))
-        #padded_feature_score[:pad_start, :] = per_feature_score[0]
-        #padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
-
-        # time-feature scores
-        #padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
-        #padded_time_feature_score[:pad_start, :, :] = scores[0]
-        #padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
-        #self.time_feature_scores_ = padded_time_feature_score
-
         print("[Zero] Padding complete")
-        self.decision_scores_ = padded_timestamp_score
-        #self.feature_scores_ = padded_feature_score
-        #self.time_feature_scores_ = padded_time_feature_score
-
+        return padded_timestamp_score
 
     def fit(self, data):
-
         print("[FT] Reconstructing DataFrame")
         num_features = data.shape[1]
         feature_names = [f"feature_{i}" for i in range(num_features)]
@@ -244,7 +221,6 @@ class TTM(BaseDetector):
             fewshot_location="first",
             use_frequency_token=self.model.config.resolution_prefix_tuning
         )
-        #self.test_size_ = len(dset_test)
 
         if self.freeze_backbone:
             print("[FT] Freezing backbone parameters")
@@ -334,62 +310,28 @@ class TTM(BaseDetector):
 
         print("[FT] Calculating mean squared error")
         per_timestamp_score = np.mean(scores, axis=(1, 2))
-        #per_feature_score = np.mean(scores, axis=1)
 
         pad_start = self.context_length + self.prediction_length - 1
-
-        # timestamp scores
         padded_timestamp_score = np.zeros(len(data))
-        # Pad start with first available score
-        start_pad_len = min(pad_start, len(data))
-        padded_timestamp_score[:start_pad_len] = per_timestamp_score[0]
-        # Fill remaining scores
-        end_idx = start_pad_len + len(per_timestamp_score)
-        padded_timestamp_score[start_pad_len:end_idx] = per_timestamp_score
-        # If necessary, pad the end
-        if end_idx < len(data):
-            padded_timestamp_score[end_idx:] = per_timestamp_score[-1]
-
-        # feature scores
-        #num_features = data.shape[1]
-        #padded_feature_score = np.zeros((len(data), num_features))
-        #if pad_start + len(per_feature_score) > len(data):
-        #    raise ValueError(
-        #        f"[FT] Cannot pad feature scores: score={len(per_feature_score)}, pad_start={pad_start}, data_len={len(data)}"
-        #    )
-        #padded_feature_score[:pad_start, :] = per_feature_score[0]
-        #padded_feature_score[pad_start:pad_start + len(per_feature_score), :] = per_feature_score
-
-        # time-feature scores
-        #padded_time_feature_score = np.zeros((len(data), scores.shape[1], scores.shape[2]))
-        #if pad_start + len(scores) > len(data):
-        #    raise ValueError(
-        #        f"[FT] Cannot pad time-feature scores: score={len(scores)}, pad_start={pad_start}, data_len={len(data)}"
-        #    )
-        #padded_time_feature_score[:pad_start, :, :] = scores[0]
-        #padded_time_feature_score[pad_start:pad_start + len(scores), :, :] = scores
-        #self.time_feature_scores_ = padded_time_feature_score
+        padded_timestamp_score[:pad_start] = per_timestamp_score[0]
+        padded_timestamp_score[pad_start:] = per_timestamp_score
 
         print("[FT] Padding complete")
         self.decision_scores_ = padded_timestamp_score
-        #self.feature_scores_ = padded_feature_score
-        #self.time_feature_scores_ = padded_time_feature_score
+        self._fitted = True
 
-    def decision_function(self, X):
-        if not hasattr(self, 'decision_scores_') or self.decision_scores_ is None:
-            raise RuntimeError("timestamp scores not available. ")
-        return self.decision_scores_
+    def decision_function(self, X, use_pretrained=False):
+        if use_pretrained:
+            return self.zero_shot(X)  
+        elif self._fitted:
+            return self.decision_scores_  
+        else:
+            raise RuntimeError("Model not fitted.")
 
-    #def feature_importance(self):
-        if not hasattr(self, 'feature_scores_') or self.feature_scores_ is None:
-            raise RuntimeError("Feature scores not available.")
-        return self.feature_scores_
-
-    #def time_feature(self):
-        if not hasattr(self, 'time_feature_scores_') or self.time_feature_scores_ is None:
-            raise RuntimeError("Time_feature scores not available.")
-        return self.time_feature_scores_
-
+    #def decision_function(self, X):
+    #    if not hasattr(self, 'decision_scores_') or self.decision_scores_ is None:
+    #        raise RuntimeError("timestamp scores not available. ")
+    #    return self.decision_scores_
 
 
 
