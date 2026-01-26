@@ -9,7 +9,7 @@ Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IFo
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
                         'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT', 'TSPulse_FT']
       
-  def run_Unsupervise_AD(model_name, data, **kwargs):
+def run_Unsupervise_AD(model_name, data, **kwargs):
     try:
         function_name = f'run_{model_name}'
         function_to_call = globals()[function_name]
@@ -412,57 +412,67 @@ def run_TTM_FT(
     data_test,
     context_length=512,
     prediction_length=96,
+    batch_size=4,
     model_path="ibm-granite/granite-timeseries-ttm-r2",
     fewshot_percent=5,
-    return_feature=False,
-    return_time_feature=False
+    #return_feature=False,
+    #return_time_feature=False
 ):
     from .models.TTM import TTM
 
     clf = TTM(
         context_length=context_length,
         prediction_length=prediction_length,
+        batch_size=batch_size,
         model_path=model_path,
         fewshot_percent=fewshot_percent
     )
     clf.fit(data_train)
-    results = [clf.decision_function(data_test, use_pretrained=False)]
-
-    if return_feature:
-        results.append(clf.feature_importance())
-
-    if return_time_feature:
-        results.append(clf.time_feature())
-
-    return tuple(results) if len(results) > 1 else results[0]
+    score = clf.decision_function(data_test, use_pretrained=False)
+    return score.ravel()
+    #clf.fit(data_train)
+    #results = [clf.decision_function(data_test, use_pretrained=False)]
+#
+    #if return_feature:
+    #    results.append(clf.feature_importance())
+#
+    #if return_time_feature:
+    #    results.append(clf.time_feature())
+#
+    #return tuple(results) if len(results) > 1 else results[0]
 
 def run_TTM_ZS(
     data,
     context_length=512,
     prediction_length=96,
+    batch_size=4,
     model_path="ibm-granite/granite-timeseries-ttm-r2",
-    return_feature=False,
-    return_time_feature=False
+    #return_feature=False,
+    #return_time_feature=False
 ):
     from .models.TTM import TTM
 
     clf = TTM(
         context_length=context_length,
         prediction_length=prediction_length,
+        batch_size=batch_size,
         model_path=model_path
     )
-    results = [clf.decision_function(data, use_pretrained=True)]
-
-    if return_feature:
-        results.append(clf.feature_importance())
-
-    if return_time_feature:
-        results.append(clf.time_feature())
-
-    return tuple(results) if len(results) > 1 else results[0]
+    score = clf.decision_function(data, use_pretrained=True)
+    return score.ravel()
+    #results = [clf.decision_function(data, use_pretrained=True)]
+#
+    #if return_feature:
+    #    results.append(clf.feature_importance())
+#
+    #if return_time_feature:
+    #    results.append(clf.time_feature())
+#
+    #return tuple(results) if len(results) > 1 else results[0]
   
 def run_Chronos2_ZS(
     data,
+    context_length=512, 
     prediction_length=1,
     model_name="amazon/chronos-2",
     quantile_levels=[0.1, 0.5, 0.9],
@@ -471,6 +481,7 @@ def run_Chronos2_ZS(
 
     clf = Chronos2(
         model_name=model_name,
+        context_length=context_length,
         prediction_length=prediction_length,
         quantile_levels=quantile_levels,
     )
@@ -482,6 +493,7 @@ def run_Chronos2_ZS(
 def run_Chronos2_FT(
     data_train,
     data_test,
+    context_length=512, 
     prediction_length=1,
     model_name="amazon/chronos-2",
     quantile_levels=[0.1, 0.5, 0.9],
@@ -492,6 +504,7 @@ def run_Chronos2_FT(
     from TSB_AD.models.Chronos2 import Chronos2
     clf = Chronos2(
         model_name=model_name,
+        context_length=context_length,
         prediction_length=prediction_length,
         quantile_levels=quantile_levels,
     )

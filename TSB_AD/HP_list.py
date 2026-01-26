@@ -96,11 +96,13 @@ Multi_algo_HP_dict = {
         'batch_size': [2, 4, 8]
     },
     'Chronos2_FT': {
+        'context_length': 512,  
         'prediction_length': [1, 5, 10],
         'learning_rate': [1e-5, 5e-5],
         'batch_size': [16, 32],
     },
     'Chronos2_ZS': {
+        'context_length': 512,  
         'prediction_length': [1, 5, 10],
         'learning_rate': [1e-5, 5e-5],
         'batch_size': [16, 32],
@@ -136,7 +138,7 @@ Optimal_Multi_algo_HP_dict = {
     'TTM_ZS': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
     'TTM_FT': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
     'Chronos2_FT': {'prediction_length': 1,'learning_rate': 1e-5,'batch_size': 32,},
-    'Chronos2_ZS': {'prediction_length': 1, 'learning_rate': 1e-5, 'batch_size': 32, }
+    'Chronos2_ZS': {'context_length': 512, 'prediction_length': 1, 'learning_rate': 1e-5, 'batch_size': 32, }
 }
 
 
@@ -268,9 +270,11 @@ Uni_algo_HP_dict = {
         'batch_size': [2, 4, 8]
     },
     'Chronos2_ZS': {
+        'context_length': 512,  
         'prediction_length': [1, 5, 10]
     },
     'Chronos2_FT': {
+        'context_length': 512,  
         'prediction_length': [1, 5, 10]
     }
 
@@ -315,8 +319,8 @@ Optimal_Uni_algo_HP_dict = {
     'M2N2': {},
     'TTM_ZS': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
     'TTM_FT': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
-    'Chronos2_ZS': {'prediction_length': 1},
-    'Chronos2_FT': {'prediction_length': 1}
+    'Chronos2_ZS': {'context_length': 512, 'prediction_length': 1},
+    'Chronos2_FT': {'context_length': 512, 'prediction_length': 1},
     'TSPulse_ZS': {'win_size': 96, 
                    'prediction_mode': 'time'},
     'TSPulse_FT': {'win_size': 96, 

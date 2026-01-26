@@ -332,8 +332,3 @@ class TTM(BaseDetector):
     #    if not hasattr(self, 'decision_scores_') or self.decision_scores_ is None:
     #        raise RuntimeError("timestamp scores not available. ")
     #    return self.decision_scores_
-
-
-
-
-
