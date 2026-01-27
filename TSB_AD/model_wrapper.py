@@ -414,9 +414,10 @@ def run_TTM_FT(
     prediction_length=96,
     batch_size=4,
     model_path="ibm-granite/granite-timeseries-ttm-r2",
-    fewshot_percent=5,
-    #return_feature=False,
-    #return_time_feature=False
+    num_epochs=50,                    
+    learning_rate=0.001,             
+    freeze_backbone=False,            
+    validation_size=0.1, 
 ):
     from .models.TTM import TTM
 
@@ -425,21 +426,14 @@ def run_TTM_FT(
         prediction_length=prediction_length,
         batch_size=batch_size,
         model_path=model_path,
-        fewshot_percent=fewshot_percent
+        num_epochs=num_epochs,        
+        learning_rate=learning_rate, 
+        freeze_backbone=freeze_backbone,  
+        validation_size=validation_size, 
     )
     clf.fit(data_train)
     score = clf.decision_function(data_test, use_pretrained=False)
     return score.ravel()
-    #clf.fit(data_train)
-    #results = [clf.decision_function(data_test, use_pretrained=False)]
-#
-    #if return_feature:
-    #    results.append(clf.feature_importance())
-#
-    #if return_time_feature:
-    #    results.append(clf.time_feature())
-#
-    #return tuple(results) if len(results) > 1 else results[0]
 
 def run_TTM_ZS(
     data,
@@ -447,8 +441,6 @@ def run_TTM_ZS(
     prediction_length=96,
     batch_size=4,
     model_path="ibm-granite/granite-timeseries-ttm-r2",
-    #return_feature=False,
-    #return_time_feature=False
 ):
     from .models.TTM import TTM
 
@@ -460,15 +452,6 @@ def run_TTM_ZS(
     )
     score = clf.decision_function(data, use_pretrained=True)
     return score.ravel()
-    #results = [clf.decision_function(data, use_pretrained=True)]
-#
-    #if return_feature:
-    #    results.append(clf.feature_importance())
-#
-    #if return_time_feature:
-    #    results.append(clf.time_feature())
-#
-    #return tuple(results) if len(results) > 1 else results[0]
   
 def run_Chronos2_ZS(
     data,
@@ -486,7 +469,6 @@ def run_Chronos2_ZS(
         quantile_levels=quantile_levels,
     )
     
-    #score = clf.zero_shot(data)
     score = clf.decision_function(data, use_pretrained=True)
     return score.ravel()
 
@@ -500,6 +482,7 @@ def run_Chronos2_FT(
     num_steps=1000,
     batch_size=32,
     learning_rate=1e-5,
+    validation_size=0.2,
 ):
     from TSB_AD.models.Chronos2 import Chronos2
     clf = Chronos2(
@@ -507,14 +490,12 @@ def run_Chronos2_FT(
         context_length=context_length,
         prediction_length=prediction_length,
         quantile_levels=quantile_levels,
-    )
-    clf.fit(
-        data_train,
         num_steps=num_steps,
         batch_size=batch_size,
-        learning_rate=learning_rate
+        learning_rate=learning_rate,
+        validation_size=validation_size,
     )
-    #score = clf.decision_function(data_test)
+    clf.fit(data_train)
     score = clf.decision_function(data_test, use_pretrained=False)
     return score.ravel()
 
