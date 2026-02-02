@@ -34,7 +34,7 @@ if __name__ == '__main__':
     parser.add_argument('--filename', type=str, default='009_MSL_id_8_Sensor_tr_714_1st_1390.csv')
     parser.add_argument('--data_direc', type=str, default='/home/ayumi/Documents/TSB-AD/Datasets/TSB-AD-M/')
     parser.add_argument('--save', type=bool, default=False)
-    parser.add_argument('--AD_Name', type=str, default='Chronos')
+    parser.add_argument('--AD_Name', type=str, default='TTM_FT')
     args = parser.parse_args()
 
     df = pd.read_csv(args.data_direc + args.filename).dropna()
