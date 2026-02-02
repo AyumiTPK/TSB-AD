@@ -221,53 +221,98 @@ class TTM(BaseDetector):
         
         num_features = X.shape[1]
         feature_names = [f"feature_{i}" for i in range(num_features)]
+
+        if use_pretrained or not self._fitted:
+            print("[Decision] Using per-window normalization (zero-shot)")
+            X_mean = data_win.mean(axis=1, keepdims=True)
+            X_std = data_win.std(axis=1, keepdims=True) + 1e-8
+            X_scaled = (data_win - X_mean) / X_std
+            y_scaled = (data_target - X_mean) / X_std
+        else:
+            print("[Decision] Using fitted scaler (fine-tuned)")
+            if not self.tsp.target_scaler_dict:
+                raise RuntimeError("Target scaler is not trained; call fit() first.")
+            scaler = self.tsp.target_scaler_dict.get("0")
+            if scaler is None:
+                scaler = next(iter(self.tsp.target_scaler_dict.values()))      
+            print(f"[Decision] Scaler type: {type(scaler)}") 
+             
+            X_scaled = scaler.transform(
+                pd.DataFrame(
+                    data_win.reshape(-1, num_features),
+                    columns=feature_names
+                )
+            ).reshape(data_win.shape)
+            
+            y_scaled = scaler.transform(
+                pd.DataFrame(
+                    data_target.reshape(-1, num_features),
+                    columns=feature_names
+                )
+            ).reshape(data_target.shape)
         
-        if self.tsp is None:
-            if not self.column_specifiers:
-                self.column_specifiers = {
-                    "timestamp_column": None,
-                    "id_columns": [],
-                    "target_columns": feature_names,
-                    "control_columns": [],
-                }
-            self.tsp = TimeSeriesPreprocessor(
-                context_length=self.context_length,
-                prediction_length=self.prediction_length,
-                scaling=True,
-                encode_categorical=False,
-                scaler_type="standard",
-                column_specifiers=self.column_specifiers,
-            )
-            df_full = pd.DataFrame(X, columns=feature_names)
-            self.tsp.train(df_full)
-
-        if not self.tsp.target_scaler_dict:
-            raise RuntimeError("Target scaler is not trained; call self.tsp.train(df_full) first.")
-        scaler = self.tsp.target_scaler_dict.get("0")
-        if scaler is None:
-            scaler = next(iter(self.tsp.target_scaler_dict.values()))
-        print(f"[Decision] Scaler type: {type(scaler)}")
-
-        X_scaled = scaler.transform(
-            data_win.reshape(-1, num_features)
-        ).reshape(data_win.shape)
         print(f"[Decision] X_scaled shape: {X_scaled.shape}, min/max: {X_scaled.min():.4f}/{X_scaled.max():.4f}")
-
-        y_scaled = scaler.transform(
-            data_target.reshape(-1, num_features)
-        ).reshape(data_target.shape)
         print(f"[Decision] y_scaled shape: {y_scaled.shape}, min/max: {y_scaled.min():.4f}/{y_scaled.max():.4f}")
 
+        #if self.tsp is None:
+        #    if not self.column_specifiers:
+        #        self.column_specifiers = {
+        #            "timestamp_column": None,
+        #            "id_columns": [],
+        #            "target_columns": feature_names,
+        #            "control_columns": [],
+        #        }
+        #    self.tsp = TimeSeriesPreprocessor(
+        #        context_length=self.context_length,
+        #        prediction_length=self.prediction_length,
+        #        scaling=True,
+        #        encode_categorical=False,
+        #        scaler_type="standard",
+        #        column_specifiers=self.column_specifiers,
+        #    )
+            #df_full = pd.DataFrame(X, columns=feature_names)
+            #self.tsp.train(df_full)
+#
+#        if not self.tsp.target_scaler_dict:
+#            raise RuntimeError("Target scaler is not trained; call self.tsp.train(df_full) first.")
+#        scaler = self.tsp.target_scaler_dict.get("0")
+#        if scaler is None:
+#            scaler = next(iter(self.tsp.target_scaler_dict.values()))
+#        print(f"[Decision] Scaler type: {type(scaler)}")
+#        X_scaled = scaler.transform(
+#            data_win.reshape(-1, num_features)
+#        ).reshape(data_win.shape)
+#        print(f"[Decision] X_scaled shape: {X_scaled.shape}, min/max: {X_scaled.min():.4f}/{X_scaled.max():.4f}")
+#
+#        y_scaled = scaler.transform(
+#            data_target.reshape(-1, num_features)
+#        ).reshape(data_target.shape)
+#        print(f"[Decision] y_scaled shape: {y_scaled.shape}, min/max: {y_scaled.min():.4f}/{y_scaled.max():.4f}")
         model.eval()
         device = next(model.parameters()).device
         print(f"[Decision] Model device: {device}")
 
+        batch_size = 32
+        all_preds = []
+        
         with torch.no_grad():
-            outputs = model(
-                past_values=torch.tensor(X_scaled, dtype=torch.float32, device=device)
-            )
-        preds = outputs.prediction_outputs.detach().cpu().numpy()
+            for i in range(0, len(X_scaled), batch_size):
+                batch = torch.tensor(
+                    X_scaled[i:i+batch_size], 
+                    dtype=torch.float32, 
+                    device=device
+                )
+                outputs = model(past_values=batch)
+                all_preds.append(outputs.prediction_outputs.detach().cpu().numpy())
+        
+        preds = np.concatenate(all_preds, axis=0)
         print(f"[Decision] preds shape: {preds.shape}, min/max: {preds.min():.4f}/{preds.max():.4f}")
+        #with torch.no_grad():
+        #    outputs = model(
+        #        past_values=torch.tensor(X_scaled, dtype=torch.float32, device=device)
+        #    )
+        #preds = outputs.prediction_outputs.detach().cpu().numpy()
+        #print(f"[Decision] preds shape: {preds.shape}, min/max: {preds.min():.4f}/{preds.max():.4f}")
 
         scores = np.mean((y_scaled - preds) ** 2, axis=(1, 2))
         print(f"[Decision] scores shape: {scores.shape}, min/max/mean: {scores.min():.4f}/{scores.max():.4f}/{scores.mean():.4f}")
@@ -282,91 +327,6 @@ class TTM(BaseDetector):
         self.decision_scores_ = padded_scores
         return padded_scores
 
-        #all_predictions = []
-        #all_targets = []
-    #
-        #for i in range(len(data_win)):
-            # Create DataFrame for this window (context + target)
-        #    window_full = np.concatenate([data_win[i], data_target[i]], axis=0)
-        #    window_df = pd.DataFrame(window_full, columns=feature_names)
-        #    
-            # Create a dataset with just this window
-        #    window_split_config = {
-        #        "train": [0, len(window_df)],
-        #        "valid": [0, len(window_df)],
-        #        "test": [0, len(window_df)]
-        #    }
-#
-#            try:
-#                _, _, window_dataset = get_datasets(
-#                    self.tsp,
-#                    window_df,
-#                    window_split_config,
-#                    fewshot_fraction=1.0,
-#                    fewshot_location="first",
-#                    use_frequency_token=model.config.resolution_prefix_tuning,
-#                )
-#                
-#                temp_dir = tempfile.mkdtemp()
-#                training_args = TrainingArguments(
-#                    output_dir=temp_dir,
-#                    per_device_eval_batch_size=1,
-#                    report_to="none",
-#                    seed=7,
-#                )
-#                trainer = Trainer(model=model, args=training_args)
-#                predictions = trainer.predict(window_dataset)
-#                
-#                # Debug output
-#                print(f"[DEBUG] Window {i}: predictions type={type(predictions)}")
-#                print(f"[DEBUG] Window {i}: predictions.predictions type={type(predictions.predictions)}, shape={np.array(predictions.predictions).shape if hasattr(predictions.predictions, 'shape') else 'N/A'}")
-#                print(f"[DEBUG] Window {i}: predictions.label_ids type={type(predictions.label_ids)}, shape={np.array(predictions.label_ids).shape if predictions.label_ids is not None else 'None'}")
-#                
-#                # Safely unpack
-#                preds = predictions.predictions
-#                if isinstance(preds, tuple):
-#                    print(f"[DEBUG] Window {i}: preds is tuple of length {len(preds)}")
-#                    preds = preds[0]
-#                preds = np.array(preds).squeeze()
-#                print(f"[DEBUG] Window {i}: final preds shape={preds.shape}")
-#                
-#                targets = predictions.label_ids
-#                if targets is None:
-#                    raise ValueError("label_ids is None")
-#                if isinstance(targets, tuple):
-#                    print(f"[DEBUG] Window {i}: targets is tuple of length {len(targets)}")
-#                    targets = targets[0]
-#                targets = np.array(targets).squeeze()
-#                print(f"[DEBUG] Window {i}: final targets shape={targets.shape}")
-#                
-#                all_predictions.append(preds)
-#                all_targets.append(targets)
-#                
-#            except Exception as e:
-#                print(f"[Decision] Failed to process window {i}: {e}")
-#                import traceback
-#                traceback.print_exc()
-#                all_predictions.append(np.zeros((self.prediction_length, num_features)))
-#                all_targets.append(np.zeros((self.prediction_length, num_features)))
-#                
-#        predictions = np.array(all_predictions)
-#        targets = np.array(all_targets)
-#        print(f"[Decision] predictions shape: {predictions.shape}")
-#        print(f"[Decision] targets shape: {targets.shape}")#
-#
-#        scores = np.mean((targets - predictions) ** 2, axis=(1, 2))
-#        print(f"[Decision] scores shape: {scores.shape}")
-#        print(f"[Decision] scores min/max/mean: {scores.min():.4f} / {scores.max():.4f} / {scores.mean():.4f}")
-#       
-#       pad_length = self.context_length + self.prediction_length - 1
-#        padded_scores = np.zeros(len(X))
-#        padded_scores[:pad_length] = scores[0]
-#        padded_scores[pad_length:] = scores
-#        
-#        print(f"[Decision] padded shape: {padded_scores.shape}")
-#        self.decision_scores_ = padded_scores
-#        return padded_scores
-#
     def create_dataset(self, X, slidingWindow, predict_time_steps=1):
         Xs, ys = [], []
         for i in range(len(X) - slidingWindow - predict_time_steps + 1):
