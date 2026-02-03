@@ -5,7 +5,7 @@ import math
 from .utils.slidingWindows import find_length_rank
 
 Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY', 'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS', 
-                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS',  'TTM_ZS', 'Chronos2_ZS', 'TSPulse_ZS']
+                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS',  'TTM_ZS', 'Chronos2_ZS', 'TSPulse_ZS', 'Toto_ZS', 'Moirai_ZS']
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
                         'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT', 'TSPulse_FT']
       
@@ -551,4 +551,52 @@ def run_TSPulse_FT(data_train,
         )
     clf.fit(data_train)
     score = clf.decision_function(data_test)
+    return score.ravel()
+
+def run_Toto_ZS(
+    data,
+    context_length=4096,
+    prediction_length=336,
+    num_samples=256,
+    samples_per_batch=256,
+    use_kv_cache=True,
+    batch_size=1,
+    model_path="Datadog/Toto-Open-Base-1.0",
+):
+    from .models.Toto import TotoDetector
+
+    clf = TotoDetector(
+        model_path=model_path,
+        context_length=context_length,
+        prediction_length=prediction_length,
+        num_samples=num_samples,
+        samples_per_batch=samples_per_batch,
+        use_kv_cache=use_kv_cache,
+        batch_size=batch_size,
+    )
+    score = clf.decision_function(data, use_pretrained=True)
+    return score.ravel()
+
+def run_Moirai_ZS(
+    data,
+    model_size="small",
+    context_length=1024,
+    prediction_length=96,
+    patch_size="auto",
+    num_samples=100,
+    batch_size=32,
+    freq="1H",
+):
+    from .models.Moirai import MoiraiDetector
+
+    clf = MoiraiDetector(
+        model_size=model_size,
+        context_length=context_length,
+        prediction_length=prediction_length,
+        patch_size=patch_size,
+        num_samples=num_samples,
+        batch_size=batch_size,
+        freq=freq,
+    )
+    score = clf.decision_function(data, use_pretrained=True)
     return score.ravel()

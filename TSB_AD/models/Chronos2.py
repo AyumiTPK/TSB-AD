@@ -6,7 +6,7 @@ Original source: [https://github.com/amazon-science/chronos-forecasting]
 import numpy as np
 import pandas as pd
 import torch
-from chronos import BaseChronosPipeline, Chronos2Pipeline
+from chronos.chronos2.pipeline import BaseChronosPipeline, Chronos2Pipeline
 from .base import BaseDetector
 
 class Chronos2(BaseDetector):

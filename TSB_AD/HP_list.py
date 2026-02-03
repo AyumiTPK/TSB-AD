@@ -1,4 +1,3 @@
-
 Multi_algo_HP_dict = {
     'IForest': {
         'n_estimators': [25, 50, 100, 150, 200],
@@ -106,7 +105,21 @@ Multi_algo_HP_dict = {
         'prediction_length': [1, 5, 10],
         'learning_rate': [1e-5, 5e-5],
         'batch_size': [16, 32],
-    }
+    },
+    'Toto_ZS': {
+        'context_length': [1024, 2048, 4096],
+        'prediction_length': [96, 336],
+        'batch_size': [1, 2],
+        'num_samples': [64, 128, 256],
+    },
+    'Moirai_ZS': {
+        'model_size': ['small', 'base'],
+        'context_length': [512, 1024],
+        'prediction_length': [96, 192],
+        'patch_size': ['auto', 16, 32],
+        'num_samples': [64, 100],
+        'batch_size': [16, 32],
+    },
 }
 
 
@@ -138,7 +151,9 @@ Optimal_Multi_algo_HP_dict = {
     'TTM_ZS': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
     'TTM_FT': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
     'Chronos2_FT': {'prediction_length': 1,'learning_rate': 1e-5,'batch_size': 32,},
-    'Chronos2_ZS': {'context_length': 512, 'prediction_length': 1, 'learning_rate': 1e-5, 'batch_size': 32, }
+    'Chronos2_ZS': {'context_length': 512, 'prediction_length': 1, 'learning_rate': 1e-5, 'batch_size': 32, },
+    'Toto_ZS': {'context_length': 4096, 'prediction_length': 336, 'batch_size': 1, 'num_samples': 256},
+    'Moirai_ZS': {'model_size': 'small', 'context_length': 1024, 'prediction_length': 96, 'patch_size': 'auto', 'num_samples': 100, 'batch_size': 32},
 }
 
 
@@ -276,8 +291,21 @@ Uni_algo_HP_dict = {
     'Chronos2_FT': {
         'context_length': 512,  
         'prediction_length': [1, 5, 10]
-    }
-
+    },
+    'Toto_ZS': {
+        'context_length': [1024, 2048, 4096],
+        'prediction_length': [96, 336],
+        'batch_size': [1, 2],
+        'num_samples': [64, 128, 256],
+    },
+    'Moirai_ZS': {
+        'model_size': ['small', 'base'],
+        'context_length': [512, 1024],
+        'prediction_length': [96, 192],
+        'patch_size': ['auto', 16, 32],
+        'num_samples': [64, 100],
+        'batch_size': [16, 32],
+    },
 }
 
 Optimal_Uni_algo_HP_dict = {
@@ -326,4 +354,6 @@ Optimal_Uni_algo_HP_dict = {
     'TSPulse_FT': {'win_size': 96, 
                    'prediction_mode': 'time',
                    'lr': 1e-4},
+    'Toto_ZS': {'context_length': 4096, 'prediction_length': 336, 'batch_size': 1, 'num_samples': 256},
+    'Moirai_ZS': {'model_size': 'small', 'context_length': 1024, 'prediction_length': 96, 'patch_size': 'auto', 'num_samples': 100, 'batch_size': 32},
 }
