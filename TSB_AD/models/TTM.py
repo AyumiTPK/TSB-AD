@@ -115,7 +115,7 @@ class TTM(BaseDetector):
             self.model_path,
             context_length=self.context_length,
             prediction_length=self.prediction_length,
-            freq_prefix_tuning=False,
+            freq_prefix_tuning=None,
             freq=None,
             prefer_l1_loss=False,
             prefer_longer_context=True,
@@ -207,7 +207,7 @@ class TTM(BaseDetector):
                     self.model_path,
                     context_length=self.context_length,
                     prediction_length=self.prediction_length,
-                    freq_prefix_tuning=False,
+                    freq_prefix_tuning=None,
                     prefer_longer_context=True,
                 )
             model = self.pretrained_model
@@ -254,40 +254,6 @@ class TTM(BaseDetector):
         print(f"[Decision] X_scaled shape: {X_scaled.shape}, min/max: {X_scaled.min():.4f}/{X_scaled.max():.4f}")
         print(f"[Decision] y_scaled shape: {y_scaled.shape}, min/max: {y_scaled.min():.4f}/{y_scaled.max():.4f}")
 
-        #if self.tsp is None:
-        #    if not self.column_specifiers:
-        #        self.column_specifiers = {
-        #            "timestamp_column": None,
-        #            "id_columns": [],
-        #            "target_columns": feature_names,
-        #            "control_columns": [],
-        #        }
-        #    self.tsp = TimeSeriesPreprocessor(
-        #        context_length=self.context_length,
-        #        prediction_length=self.prediction_length,
-        #        scaling=True,
-        #        encode_categorical=False,
-        #        scaler_type="standard",
-        #        column_specifiers=self.column_specifiers,
-        #    )
-            #df_full = pd.DataFrame(X, columns=feature_names)
-            #self.tsp.train(df_full)
-#
-#        if not self.tsp.target_scaler_dict:
-#            raise RuntimeError("Target scaler is not trained; call self.tsp.train(df_full) first.")
-#        scaler = self.tsp.target_scaler_dict.get("0")
-#        if scaler is None:
-#            scaler = next(iter(self.tsp.target_scaler_dict.values()))
-#        print(f"[Decision] Scaler type: {type(scaler)}")
-#        X_scaled = scaler.transform(
-#            data_win.reshape(-1, num_features)
-#        ).reshape(data_win.shape)
-#        print(f"[Decision] X_scaled shape: {X_scaled.shape}, min/max: {X_scaled.min():.4f}/{X_scaled.max():.4f}")
-#
-#        y_scaled = scaler.transform(
-#            data_target.reshape(-1, num_features)
-#        ).reshape(data_target.shape)
-#        print(f"[Decision] y_scaled shape: {y_scaled.shape}, min/max: {y_scaled.min():.4f}/{y_scaled.max():.4f}")
         model.eval()
         device = next(model.parameters()).device
         print(f"[Decision] Model device: {device}")
