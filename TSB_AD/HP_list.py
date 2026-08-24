@@ -96,30 +96,31 @@ Multi_algo_HP_dict = {
     },
     'Chronos2_FT': {
         'context_length': 512,  
-        'prediction_length': [1, 5, 10],
+        'prediction_length': [1, 24, 96],
         'learning_rate': [1e-5, 5e-5],
         'batch_size': [16, 32],
     },
     'Chronos2_ZS': {
         'context_length': 512,  
-        'prediction_length': [1, 5, 10],
+        'prediction_length': [1, 24, 96],
         'learning_rate': [1e-5, 5e-5],
         'batch_size': [16, 32],
     },
-    'Toto_ZS': {
-        'context_length': [1024, 2048, 4096],
-        'prediction_length': [96, 336],
-        'batch_size': [1, 2],
-        'num_samples': [64, 128, 256],
+    'Time_RCD': {
+        'win_size': [15000]
     },
-    'Moirai_ZS': {
-        'model_size': ['small', 'base'],
-        'context_length': [512, 1024],
-        'prediction_length': [96, 192],
-        'patch_size': ['auto', 16, 32],
-        'num_samples': [64, 100],
-        'batch_size': [16, 32],
+    'xLSTMAD': {
+        'window_size': [50, 100, 150],
+        'lr': [0.001],
+        'embedding_dim': [20, 40],
     },
+    'MMPAD': {
+        'n_dim': [1, 0.1, 0.3, 0.5, 0.7],
+        'n_neighbor': [1, 5, 10, 15],
+    },
+    'PCA_Simple': {
+        'n_components': 4
+    }
 }
 
 
@@ -152,8 +153,10 @@ Optimal_Multi_algo_HP_dict = {
     'TTM_FT': {'context_length': 512, 'prediction_length': 96, 'batch_size': 4},
     'Chronos2_FT': {'prediction_length': 1,'learning_rate': 1e-5,'batch_size': 32,},
     'Chronos2_ZS': {'context_length': 512, 'prediction_length': 1, 'learning_rate': 1e-5, 'batch_size': 32, },
-    'Toto_ZS': {'context_length': 4096, 'prediction_length': 336, 'batch_size': 1, 'num_samples': 256},
-    'Moirai_ZS': {'model_size': 'small', 'context_length': 1024, 'prediction_length': 96, 'patch_size': 'auto', 'num_samples': 100, 'batch_size': 32},
+    'Time_RCD': {'win_size': 15000, 'batch_size': 64},
+    'xLSTMAD': {'window_size': 50, 'lr': 0.001, 'embedding_dim': 40},
+    'MMPAD': {'n_dim': 0.7, 'n_neighbor': 15},
+    'PCA_Simple': {'n_components': 4}
 }
 
 
@@ -286,26 +289,26 @@ Uni_algo_HP_dict = {
     },
     'Chronos2_ZS': {
         'context_length': 512,  
-        'prediction_length': [1, 5, 10]
+        'prediction_length': [1, 24, 96]
     },
     'Chronos2_FT': {
         'context_length': 512,  
-        'prediction_length': [1, 5, 10]
+        'prediction_length': [1, 24, 96]
     },
-    'Toto_ZS': {
-        'context_length': [1024, 2048, 4096],
-        'prediction_length': [96, 336],
-        'batch_size': [1, 2],
-        'num_samples': [64, 128, 256],
+    'Time_RCD': {
+        'win_size': [15000]
     },
-    'Moirai_ZS': {
-        'model_size': ['small', 'base'],
-        'context_length': [512, 1024],
-        'prediction_length': [96, 192],
-        'patch_size': ['auto', 16, 32],
-        'num_samples': [64, 100],
-        'batch_size': [16, 32],
+    'xLSTMAD': {
+        'window_size': [50, 100, 150],
+        'lr': [0.0005, 0.001],
+        'embedding_dim': [20, 40],
     },
+    'MMPAD': {
+        'n_neighbor': [1, 5, 10, 15],
+    },
+    'PCA_Simple': {
+        'n_components': 4
+    }
 }
 
 Optimal_Uni_algo_HP_dict = {
@@ -354,6 +357,8 @@ Optimal_Uni_algo_HP_dict = {
     'TSPulse_FT': {'win_size': 96, 
                    'prediction_mode': 'time',
                    'lr': 1e-4},
-    'Toto_ZS': {'context_length': 4096, 'prediction_length': 336, 'batch_size': 1, 'num_samples': 256},
-    'Moirai_ZS': {'model_size': 'small', 'context_length': 1024, 'prediction_length': 96, 'patch_size': 'auto', 'num_samples': 100, 'batch_size': 32},
+    'Time_RCD': {'win_size': 15000, 'batch_size': 64},
+    'xLSTMAD': {'window_size': 50, 'lr': 0.001, 'embedding_dim': 40},
+    'MMPAD': {'n_neighbor': 5},
+    'PCA_Simple': {'n_components': 4}
 }

@@ -5,9 +5,9 @@ import math
 from .utils.slidingWindows import find_length_rank
 
 Unsupervise_AD_Pool = ['FFT', 'SR', 'NORMA', 'Series2Graph', 'Sub_IForest', 'IForest', 'LOF', 'Sub_LOF', 'POLY', 'MatrixProfile', 'Sub_PCA', 'PCA', 'HBOS', 
-                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS',  'TTM_ZS', 'Chronos2_ZS', 'TSPulse_ZS', 'Toto_ZS', 'Moirai_ZS']
+                        'Sub_HBOS', 'KNN', 'Sub_KNN','KMeansAD', 'KMeansAD_U', 'KShapeAD', 'COPOD', 'CBLOF', 'COF', 'EIF', 'RobustPCA', 'Lag_Llama', 'TimesFM', 'Chronos', 'MOMENT_ZS',  'TTM_ZS', 'Chronos2_ZS', 'TSPulse_ZS', 'Time_RCD']
 Semisupervise_AD_Pool = ['Left_STAMPi', 'SAND', 'MCD', 'Sub_MCD', 'OCSVM', 'Sub_OCSVM', 'AutoEncoder', 'CNN', 'LSTMAD', 'TranAD', 'USAD', 'OmniAnomaly', 
-                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT', 'TSPulse_FT']
+                        'AnomalyTransformer', 'TimesNet', 'FITS', 'Donut', 'OFA', 'MOMENT_FT', 'M2N2', 'TTM_FT', 'Chronos2_FT', 'TSPulse_FT', 'xLSTMAD', 'PCA_Simple']
       
 def run_Unsupervise_AD(model_name, data, **kwargs):
     try:
@@ -553,50 +553,50 @@ def run_TSPulse_FT(data_train,
     score = clf.decision_function(data_test)
     return score.ravel()
 
-def run_Toto_ZS(
-    data,
-    context_length=4096,
-    prediction_length=336,
-    num_samples=256,
-    samples_per_batch=256,
-    use_kv_cache=True,
-    batch_size=1,
-    model_path="Datadog/Toto-Open-Base-1.0",
-):
-    from .models.Toto import TotoDetector
-
-    clf = TotoDetector(
-        model_path=model_path,
-        context_length=context_length,
-        prediction_length=prediction_length,
-        num_samples=num_samples,
-        samples_per_batch=samples_per_batch,
-        use_kv_cache=use_kv_cache,
+def run_Time_RCD(data,
+                 win_size=15000,
+                 batch_size=64,
+                 device=None,
+                 checkpoint=None):
+                 #model_id="thu-sail-lab/Time-RCD",
+                 #cache_dir=None):
+    from .models.Time_RCD import Time_RCD
+    clf = Time_RCD(
+        win_size=win_size,
+        input_c=data.shape[1],
         batch_size=batch_size,
+        device=device,
+        checkpoint=checkpoint,
+        #model_id=model_id,
+        #cache_dir=cache_dir,
     )
-    score = clf.decision_function(data, use_pretrained=True)
+    clf.zero_shot(data)
+    score = clf.decision_scores_
     return score.ravel()
 
-def run_Moirai_ZS(
-    data,
-    model_size="small",
-    context_length=1024,
-    prediction_length=96,
-    patch_size="auto",
-    num_samples=100,
-    batch_size=32,
-    freq="1H",
-):
-    from .models.Moirai import MoiraiDetector
+def run_xLSTMAD(data_train, data_test, window_size=100, lr=0.005, batch_size=32, embedding_dim=40):
+    from .models.xLSTMAD import xLSTMAD, xLSTMADModule
+    model = xLSTMADModule(embedding_dim=embedding_dim, window_size=window_size, lr=lr, features_no=data_test.shape[1])
+    clf = xLSTMAD(model=model, window_size=window_size, batch_size=batch_size)
+    clf.fit(data_train)
+    score = clf.decision_function(data_test)
+    return score.ravel()
 
-    clf = MoiraiDetector(
-        model_size=model_size,
-        context_length=context_length,
-        prediction_length=prediction_length,
-        patch_size=patch_size,
-        num_samples=num_samples,
-        batch_size=batch_size,
-        freq=freq,
-    )
-    score = clf.decision_function(data, use_pretrained=True)
+
+def run_MMPAD(data, periodicity=1, n_dim=None, n_neighbor=1,
+              sorting_place='pre', mode='discord', post_processing=2, 
+              n_job=None, backend=None):
+    from .models.MMPAD import MMPAD
+    clf = MMPAD(periodicity=periodicity, n_dim=n_dim, n_neighbor=n_neighbor,
+                sorting_place=sorting_place, mode=mode, post_processing=post_processing, 
+                n_job=n_job, backend=backend)
+    clf.fit(data)
+    score = clf.decision_scores_
+    return score.ravel()
+
+def run_PCA_Simple(data_train, data_test, n_components=4):
+    from .models.PCA_Simple import PCA_Simple
+    clf = PCA_Simple(n_components=n_components)
+    clf.fit(data_train)
+    score = clf.decision_function(data_test)
     return score.ravel()
